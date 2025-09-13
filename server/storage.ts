@@ -1,0 +1,293 @@
+import { 
+  type User, type InsertUser,
+  type ChatMessage, type InsertChatMessage,
+  type Task, type InsertTask,
+  type KnowledgeArticle, type InsertKnowledgeArticle,
+  type Meeting, type InsertMeeting
+} from "@shared/schema";
+import { randomUUID } from "crypto";
+
+// modify the interface with any CRUD methods
+// you might need
+
+export interface IStorage {
+  // Users
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
+  // Chat Messages
+  getChatMessages(channelId?: string): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+
+  // Tasks
+  getTasks(): Promise<Task[]>;
+  getTask(id: string): Promise<Task | undefined>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: string, updates: Partial<InsertTask>): Promise<Task | undefined>;
+
+  // Knowledge Articles
+  getKnowledgeArticles(): Promise<KnowledgeArticle[]>;
+  getKnowledgeArticle(id: string): Promise<KnowledgeArticle | undefined>;
+  createKnowledgeArticle(article: InsertKnowledgeArticle): Promise<KnowledgeArticle>;
+  incrementArticleViews(id: string): Promise<void>;
+
+  // Meetings
+  getMeetings(): Promise<Meeting[]>;
+  getMeeting(id: string): Promise<Meeting | undefined>;
+  createMeeting(meeting: InsertMeeting): Promise<Meeting>;
+  updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<string, User>;
+  private chatMessages: Map<string, ChatMessage>;
+  private tasks: Map<string, Task>;
+  private knowledgeArticles: Map<string, KnowledgeArticle>;
+  private meetings: Map<string, Meeting>;
+
+  constructor() {
+    this.users = new Map();
+    this.chatMessages = new Map();
+    this.tasks = new Map();
+    this.knowledgeArticles = new Map();
+    this.meetings = new Map();
+    
+    // Seed with some initial data
+    this.seedData();
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = randomUUID();
+    const user: User = { ...insertUser, id };
+    this.users.set(id, user);
+    return user;
+  }
+
+  // Chat Messages
+  async getChatMessages(channelId?: string): Promise<ChatMessage[]> {
+    const messages = Array.from(this.chatMessages.values());
+    if (channelId) {
+      return messages.filter(msg => msg.channelId === channelId);
+    }
+    return messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }
+
+  async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
+    const id = randomUUID();
+    const message: ChatMessage = {
+      ...insertMessage,
+      id,
+      channelId: insertMessage.channelId ?? null,
+      timestamp: new Date()
+    };
+    this.chatMessages.set(id, message);
+    return message;
+  }
+
+  // Tasks
+  async getTasks(): Promise<Task[]> {
+    return Array.from(this.tasks.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getTask(id: string): Promise<Task | undefined> {
+    return this.tasks.get(id);
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const id = randomUUID();
+    const task: Task = {
+      ...insertTask,
+      id,
+      description: insertTask.description ?? null,
+      assigneeId: insertTask.assigneeId ?? null,
+      assigneeName: insertTask.assigneeName ?? null,
+      dueDate: insertTask.dueDate ?? null,
+      createdAt: new Date()
+    };
+    this.tasks.set(id, task);
+    return task;
+  }
+
+  async updateTask(id: string, updates: Partial<InsertTask>): Promise<Task | undefined> {
+    const existing = this.tasks.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Task = { ...existing, ...updates };
+    this.tasks.set(id, updated);
+    return updated;
+  }
+
+  // Knowledge Articles
+  async getKnowledgeArticles(): Promise<KnowledgeArticle[]> {
+    return Array.from(this.knowledgeArticles.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getKnowledgeArticle(id: string): Promise<KnowledgeArticle | undefined> {
+    return this.knowledgeArticles.get(id);
+  }
+
+  async createKnowledgeArticle(insertArticle: InsertKnowledgeArticle): Promise<KnowledgeArticle> {
+    const id = randomUUID();
+    const now = new Date();
+    const article: KnowledgeArticle = {
+      ...insertArticle,
+      id,
+      excerpt: insertArticle.excerpt ?? null,
+      tags: insertArticle.tags ? [...insertArticle.tags] : null,
+      views: 0,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.knowledgeArticles.set(id, article);
+    return article;
+  }
+
+  async incrementArticleViews(id: string): Promise<void> {
+    const article = this.knowledgeArticles.get(id);
+    if (article) {
+      article.views += 1;
+      this.knowledgeArticles.set(id, article);
+    }
+  }
+
+  // Meetings
+  async getMeetings(): Promise<Meeting[]> {
+    return Array.from(this.meetings.values()).sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+  }
+
+  async getMeeting(id: string): Promise<Meeting | undefined> {
+    return this.meetings.get(id);
+  }
+
+  async createMeeting(insertMeeting: InsertMeeting): Promise<Meeting> {
+    const id = randomUUID();
+    const meeting: Meeting = {
+      ...insertMeeting,
+      id,
+      description: insertMeeting.description ?? null,
+      participants: insertMeeting.participants ? [...insertMeeting.participants] : null,
+      meetingUrl: insertMeeting.meetingUrl ?? null,
+      createdAt: new Date()
+    };
+    this.meetings.set(id, meeting);
+    return meeting;
+  }
+
+  async updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined> {
+    const existing = this.meetings.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Meeting = { ...existing, ...updates };
+    this.meetings.set(id, updated);
+    return updated;
+  }
+
+  private seedData() {
+    // Seed chat messages
+    const now = new Date();
+    const messages: ChatMessage[] = [
+      {
+        id: randomUUID(),
+        userId: "john-doe",
+        userName: "John Doe",
+        content: "The new authentication system is ready for testing. Can someone review the PR?",
+        channelId: "general",
+        channelType: "channel",
+        timestamp: new Date(now.getTime() - 15 * 60 * 1000),
+      },
+      {
+        id: randomUUID(),
+        userId: "sarah-wilson",
+        userName: "Sarah Wilson",
+        content: "I've updated the API documentation with the latest endpoints.",
+        channelId: "general",
+        channelType: "channel",
+        timestamp: new Date(now.getTime() - 30 * 60 * 1000),
+      },
+    ];
+    messages.forEach(msg => this.chatMessages.set(msg.id, msg));
+
+    // Seed tasks
+    const tasks: Task[] = [
+      {
+        id: randomUUID(),
+        title: "Review authentication PR",
+        description: "Review the new authentication system implementation",
+        status: "todo",
+        priority: "high",
+        assigneeId: "current",
+        assigneeName: "You",
+        dueDate: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+        createdAt: now,
+      },
+      {
+        id: randomUUID(),
+        title: "Update deployment docs",
+        description: "Update documentation for the new deployment process",
+        status: "in-progress",
+        priority: "medium",
+        assigneeId: "sarah",
+        assigneeName: "Sarah Wilson",
+        dueDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+        createdAt: now,
+      },
+    ];
+    tasks.forEach(task => this.tasks.set(task.id, task));
+
+    // Seed knowledge articles
+    const articles: KnowledgeArticle[] = [
+      {
+        id: randomUUID(),
+        title: "Authentication Best Practices",
+        content: "Guidelines for implementing secure authentication in our applications...",
+        excerpt: "Guidelines for implementing secure authentication in our applications.",
+        tags: ["security", "auth"],
+        authorId: "john",
+        authorName: "John Doe",
+        views: 45,
+        createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+      },
+    ];
+    articles.forEach(article => this.knowledgeArticles.set(article.id, article));
+
+    // Seed meetings
+    const meetings: Meeting[] = [
+      {
+        id: randomUUID(),
+        title: "Daily Standup",
+        description: "Daily team sync meeting",
+        startTime: new Date(now.getTime() + 30 * 60 * 1000),
+        endTime: new Date(now.getTime() + 60 * 60 * 1000),
+        status: "scheduled",
+        participants: [
+          { id: "john", name: "John Doe" },
+          { id: "sarah", name: "Sarah Wilson" },
+          { id: "mike", name: "Mike Johnson" },
+        ] as Array<{id: string; name: string}>,
+        meetingUrl: "https://meet.google.com/abc-def-ghi",
+        createdAt: now,
+      },
+    ];
+    meetings.forEach(meeting => this.meetings.set(meeting.id, meeting));
+  }
+}
+
+export const storage = new MemStorage();
