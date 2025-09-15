@@ -1,13 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, Hash, Users, Phone, Video, Settings } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Hash, Users, Phone, Video, Settings, MessageSquare, Filter } from "lucide-react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
+import { useState, useEffect, useRef } from "react";
 
 interface ChannelInfo {
   name: string;
@@ -15,6 +17,50 @@ interface ChannelInfo {
   memberCount: number;
   isChannel: boolean;
 }
+
+// Mock data with thread and unread support
+const mockMessagesWithThreads = [
+  {
+    id: "msg-1",
+    userId: "user-1",
+    userName: "Alice Johnson",
+    content: "Hey team, I've been working on the new authentication system. What do you think about implementing OAuth 2.0?",
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
+    channelId: "development",
+    threadCount: 3,
+    lastThreadReply: new Date(Date.now() - 1000 * 60 * 30),
+    isUnread: false,
+  },
+  {
+    id: "msg-2",
+    userId: "current-user",
+    userName: "You",
+    content: "That sounds great! OAuth 2.0 would definitely improve our security posture. Have you considered which provider to use?",
+    timestamp: new Date(Date.now() - 1000 * 60 * 60),
+    channelId: "development",
+    isUnread: false,
+  },
+  {
+    id: "msg-3",
+    userId: "user-2",
+    userName: "Bob Smith",
+    content: "I just pushed the latest updates to the API. The new endpoints are ready for testing. Can someone review the PR?",
+    timestamp: new Date(Date.now() - 1000 * 60 * 30),
+    channelId: "development",
+    threadCount: 1,
+    lastThreadReply: new Date(Date.now() - 1000 * 60 * 15),
+    isUnread: true,
+  },
+  {
+    id: "msg-4",
+    userId: "user-3",
+    userName: "Carol Wilson",
+    content: "The client meeting went well! They approved the design mockups. I'll update the project board with the feedback.",
+    timestamp: new Date(Date.now() - 1000 * 60 * 15),
+    channelId: "development",
+    isUnread: true,
+  },
+];
 
 // Mock channel info until we have channels API
 const getChannelInfo = (channelId: string): ChannelInfo => {
@@ -32,10 +78,42 @@ export default function Chat() {
   const [match, params] = useRoute("/chat/channel/:channelId");
   const channelId = params?.channelId || "general";
   
-  // Fetch messages for this channel
-  const { data: messages = [], isLoading: messagesLoading } = useQuery<ChatMessageType[]>({
-    queryKey: ["/api/messages", `?channelId=${channelId}`],
+  // Local state for filtering
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [showThreadsOnly, setShowThreadsOnly] = useState(false);
+  
+  // Ref for auto-scrolling
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Use mock data for now - in real app, this would be API call
+  const messages = mockMessagesWithThreads.filter(msg => msg.channelId === channelId);
+  
+  // Apply filters and identify first unread message
+  const filteredMessages = messages.filter(message => {
+    if (showUnreadOnly && !message.isUnread) return false;
+    if (showThreadsOnly && !message.threadCount) return false;
+    return true;
   });
+
+  // Find the first unread message index
+  const firstUnreadIndex = filteredMessages.findIndex(message => message.isUnread);
+  
+  // Mark the first unread message
+  const messagesWithUnreadMarker = filteredMessages.map((message, index) => ({
+    ...message,
+    isFirstUnread: message.isUnread && index === firstUnreadIndex
+  }));
+
+  // Debug: Log message information
+  console.log('Current channelId:', channelId);
+  console.log('All messages:', messages.length);
+  console.log('Filtered messages:', filteredMessages.length);
+  console.log('Messages with unread marker:', messagesWithUnreadMarker.length);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messagesWithUnreadMarker.length]);
   
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -72,15 +150,19 @@ export default function Chat() {
     console.log(`Replying to message ${messageId}`);
   };
 
+  const handleViewThread = (messageId: string) => {
+    console.log(`Viewing thread for message ${messageId}`);
+  };
+
   return (
     <div className="flex flex-col h-full bg-card border border-card-border rounded-lg" data-testid="page-chat">
-      {/* Chat Header - Cohere Style */}
+      {/* Chat Header - Enhanced with filters */}
       <div className="border-b border-card-border bg-card p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               {channelInfo.isChannel ? (
-                <Hash className="h-5 w-5 text-primary" />
+                <Hash className="h-5 w-5 text-green-800" />
               ) : (
                 <Users className="h-5 w-5 text-primary" />
               )}
@@ -92,6 +174,12 @@ export default function Chat() {
               <Users className="h-3 w-3 mr-1" />
               {channelInfo.memberCount}
             </Badge>
+            {/* Unread count badge */}
+            {messages.filter(m => m.isUnread).length > 0 && (
+              <Badge className="bg-blue-500 text-white text-xs">
+                {messages.filter(m => m.isUnread).length} unread
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -115,39 +203,62 @@ export default function Chat() {
           </div>
         </div>
 
-        {channelInfo.description && (
-          <p className="text-sm font-sans text-muted-foreground mt-2" data-testid="chat-description">
-            {channelInfo.description}
-          </p>
-        )}
+        {/* Message filters */}
+        <div className="flex items-center gap-4">
+          {channelInfo.description && (
+            <p className="text-sm font-sans text-muted-foreground flex-1" data-testid="chat-description">
+              {channelInfo.description}
+            </p>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={showUnreadOnly ? "unread" : showThreadsOnly ? "threads" : "all"} onValueChange={(value) => {
+              setShowUnreadOnly(value === "unread");
+              setShowThreadsOnly(value === "threads");
+            }}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Messages</SelectItem>
+                <SelectItem value="unread">Unread Only</SelectItem>
+                <SelectItem value="threads">With Threads</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto" data-testid="messages-container">
-        {messagesLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="text-muted-foreground">Loading messages...</div>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="text-muted-foreground">No messages yet. Start the conversation!</div>
+      <div className="flex-1 overflow-y-auto bg-card" data-testid="messages-container">
+        <div className="py-2">
+          {messagesWithUnreadMarker.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-center">
+                <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <div className="text-muted-foreground">
+                  {showUnreadOnly ? "No unread messages" : 
+                   showThreadsOnly ? "No messages with threads" : 
+                   "No messages yet. Start the conversation!"}
+                </div>
               </div>
-            ) : (
-              messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  {...message}
-                  isOwn={message.userId === "current-user"}
-                  onConvertToTask={handleConvertToTask}
-                  onConvertToKnowledge={handleConvertToKnowledge}
-                  onReply={handleReply}
-                />
-              ))
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            messagesWithUnreadMarker.map((message) => (
+              <ChatMessage
+                key={message.id}
+                {...message}
+                isOwn={message.userId === "current-user"}
+                onConvertToTask={handleConvertToTask}
+                onConvertToKnowledge={handleConvertToKnowledge}
+                onReply={handleReply}
+                onViewThread={handleViewThread}
+              />
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Chat Input */}

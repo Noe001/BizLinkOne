@@ -1,3 +1,4 @@
+import * as React from "react";
 import { MessageSquare, CheckSquare, BookOpen, Calendar, Settings, Hash, User, Users, Home, Plus } from "lucide-react";
 import {
   Sidebar,
@@ -10,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +41,10 @@ const mainNavItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const [platformOpen, setPlatformOpen] = React.useState(true);
+  const [settingsOpen, setSettingsOpen] = React.useState(true);
+  const { state } = useSidebar();
+  const collapsed = state === 'collapsed';
   
   const isActive = (url: string) => {
     if (url === "/") {
@@ -62,7 +68,7 @@ export function AppSidebar() {
           <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-md">
             <MessageSquare className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-lg">WorkflowHub</span>
+          <span className="font-semibold text-lg font-mono">WorkflowHub</span>
         </div>
       </SidebarHeader>
 
@@ -70,7 +76,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
+          {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase()}`}>
                     <Link 
@@ -80,7 +86,7 @@ export function AppSidebar() {
                       data-active={isActive(item.url)}
                     >
                       {isActive(item.url) && (
-                        <div className="mr-3 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
+                        <div className="mr-3 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
                       )}
                       <item.icon className={isActive(item.url) ? "" : "mr-3"} />
                       <span className="text-sm font-sans">{item.title}</span>
@@ -92,47 +98,47 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono text-primary">Channels</span>
-            <Button size="icon" variant="ghost" className="h-4 w-4" data-testid="button-add-channel">
-              <Plus className="h-3 w-3" />
-            </Button>
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mockChannels.map((channel) => (
-                <SidebarMenuItem key={channel.id}>
-                  <SidebarMenuButton asChild data-testid={`channel-${channel.name}`}>
-                    <Link 
-                      href={`/chat/channel/${channel.id}`} 
-                      className="flex items-center justify-between"
-                      aria-current={isActiveChannel(channel.id) ? "page" : undefined}
-                      data-active={isActiveChannel(channel.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isActiveChannel(channel.id) && (
-                          <div className="mr-1 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
+          <SidebarGroup>
+            <SidebarGroupLabel className="flex items-center justify-between">
+                <button onClick={() => setPlatformOpen((s) => !s)} className="section-toggle flex items-center justify-between w-full text-left">
+                <span className="text-xs uppercase font-mono text-green-800">Platform</span>
+                  <svg className={`w-4 h-4 text-green-800 transition-transform duration-300 ${platformOpen ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className={`${platformOpen ? 'max-h-screen' : 'max-h-0'} transition-all duration-300 overflow-hidden mt-2`}> 
+                {mockChannels.map((channel) => (
+                  <SidebarMenuItem key={channel.id}>
+                    <SidebarMenuButton asChild data-testid={`channel-${channel.name}`}>
+                      <Link 
+                        href={`/chat/channel/${channel.id}`} 
+                        className="flex items-center justify-between"
+                        aria-current={isActiveChannel(channel.id) ? "page" : undefined}
+                        data-active={isActiveChannel(channel.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isActiveChannel(channel.id) && (
+                            <div className="mr-1 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
+                          )}
+                          <Hash className={isActiveChannel(channel.id) ? "w-4 h-4" : "w-4 h-4 ml-3"} />
+                          <span className="sidebar-text font-mono">{channel.name}</span>
+                        </div>
+                        {channel.unread > 0 && (
+                          <Badge variant="secondary" className="h-5 text-xs" data-testid={`unread-${channel.name}`}>
+                            {channel.unread}
+                          </Badge>
                         )}
-                        <Hash className={isActiveChannel(channel.id) ? "w-4 h-4" : "w-4 h-4 ml-3"} />
-                        <span>{channel.name}</span>
-                      </div>
-                      {channel.unread > 0 && (
-                        <Badge variant="secondary" className="h-5 text-xs" data-testid={`unread-${channel.name}`}>
-                          {channel.unread}
-                        </Badge>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono text-primary">Direct Messages</span>
+            <span className="text-xs uppercase font-mono text-green-800">Direct Messages</span>
             <Button size="icon" variant="ghost" className="h-4 w-4" data-testid="button-add-dm">
               <Plus className="h-3 w-3" />
             </Button>
@@ -150,7 +156,7 @@ export function AppSidebar() {
                     >
                       <div className="flex items-center gap-2">
                         {isActiveDM(dm.id) && (
-                          <div className="mr-1 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
+                          <div className="mr-1 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
                         )}
                         <div className={`relative ${isActiveDM(dm.id) ? '' : 'ml-3'}`}>
                           <Avatar className="w-4 h-4">
@@ -165,7 +171,7 @@ export function AppSidebar() {
                             'bg-status-offline'
                           }`} />
                         </div>
-                        <span className="text-sm">{dm.name}</span>
+                        <span className="sidebar-text font-mono">{dm.name}</span>
                       </div>
                       {dm.unread > 0 && (
                         <Badge variant="secondary" className="h-5 text-xs" data-testid={`unread-${dm.name}`}>
@@ -191,7 +197,7 @@ export function AppSidebar() {
                 data-active={isActive('/settings')}
               >
                 {isActive('/settings') && (
-                  <div className="mr-3 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
+                  <div className="mr-3 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
                 )}
                 <Settings className={isActive('/settings') ? "" : "mr-3"} />
                 <span>Settings</span>
@@ -199,6 +205,10 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+  <div className="mt-auto pt-4 border-t border-card-border">
+          {/* Removed hide/toggle button. Use the draggable rail to resize the sidebar instead. */}
+          <div className="w-full h-6" />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

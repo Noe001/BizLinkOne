@@ -162,7 +162,6 @@ export default function Meetings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Meetings</h1>
           <p className="text-muted-foreground">
             Manage your meetings and track session recordings and notes.
           </p>

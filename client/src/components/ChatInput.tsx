@@ -63,7 +63,6 @@ export function ChatInput({ onSendMessage, placeholder = "Type a message...", di
           onClick={handleSend}
           disabled={!message.trim() || disabled}
           data-testid="button-send-message"
-          className="bg-cohere-blue-500 hover:bg-cohere-blue-600"
         >
           <Send className="h-4 w-4" />
         </Button>

@@ -4,8 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { MessageSquare, CheckSquare, BookOpen, Calendar, Users, TrendingUp, Plus } from "lucide-react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { TaskCard } from "@/components/TaskCard";
+import type { TaskStatus } from "@/components/TaskCard";
 import { KnowledgeCard } from "@/components/KnowledgeCard";
 import { MeetingCard } from "@/components/MeetingCard";
+import type { MeetingStatus } from "@/components/MeetingCard";
 import { useQuery } from "@tanstack/react-query";
 import type { ChatMessage as ChatMessageType, Task, KnowledgeArticle, Meeting } from "@shared/schema";
 
@@ -52,11 +54,24 @@ export default function Dashboard() {
 
   // Prepare data for display
   const recentMessages = messages?.slice(0, 2) || [];
-  const upcomingTasks = tasks?.slice(0, 2) || [];
+  const upcomingTasks = tasks?.slice(0, 2).map(t => {
+    const allowed = ['todo','in-progress','review','done'] as const;
+    const status = (allowed.includes(t.status as any) ? (t.status as unknown as TaskStatus) : 'todo');
+    const allowedPriority = ['low','medium','high','urgent'] as const;
+    const priority = (allowedPriority.includes(t.priority as any) ? (t.priority as unknown as typeof allowedPriority[number]) : 'low');
+    return {
+      ...t,
+      description: t.description ?? undefined,
+      status,
+      priority,
+      dueDate: t.dueDate ?? undefined,
+    };
+  }) || [];
   
   // Transform knowledge articles to match KnowledgeCard expected structure
   const recentKnowledge = knowledge?.slice(0, 1).map(article => ({
     ...article,
+    excerpt: article.excerpt ?? undefined,
     author: {
       id: article.authorId,
       name: article.authorName,
@@ -64,7 +79,25 @@ export default function Dashboard() {
     }
   })) || [];
   
-  const upcomingMeetings = meetings?.slice(0, 1) || [];
+  const upcomingMeetings = meetings?.slice(0, 1).map(m => {
+    // Map server status (may be 'in-progress') to MeetingCard's status union ('ongoing')
+    const allowed: MeetingStatus[] = ['scheduled','ongoing','completed','cancelled'];
+    let status: MeetingStatus;
+    if (m.status === 'in-progress') {
+      status = 'ongoing';
+    } else if ((allowed as readonly string[]).includes(m.status as any)) {
+      status = m.status as MeetingStatus;
+    } else {
+      status = 'scheduled';
+    }
+
+    return {
+      ...m,
+      description: m.description ?? undefined,
+      participants: m.participants ?? null,
+      status,
+    };
+  }) || [];
 
   const isLoading = statsLoading || messagesLoading || tasksLoading || knowledgeLoading || meetingsLoading;
 
@@ -73,8 +106,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
+            <p className="text-muted-foreground">
             Welcome back! Here's what's happening in your workspace.
           </p>
         </div>
@@ -142,15 +174,15 @@ export default function Dashboard() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Messages */}
+        {/* Unread Messages */}
         <Card data-testid="section-recent-messages">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
-              Recent Messages
+              Unread Messages
             </CardTitle>
             <CardDescription>
-              Latest activity from your team channels
+              Unread messages from your team channels
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

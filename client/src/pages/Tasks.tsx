@@ -111,7 +111,6 @@ export default function Tasks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
           <p className="text-muted-foreground">
             Manage your team's tasks and track progress across projects.
           </p>

@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Calendar, MoreHorizontal } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MessageSquare, Calendar, MoreHorizontal, Info } from "lucide-react";
+import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 
 export type TaskStatus = "todo" | "in-progress" | "review" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
@@ -11,7 +12,7 @@ export type TaskPriority = "low" | "medium" | "high" | "urgent";
 interface TaskCardProps {
   id: string;
   title: string;
-  description?: string;
+  description?: string | null;
   status: TaskStatus;
   priority: TaskPriority;
   assignee?: {
@@ -28,14 +29,14 @@ interface TaskCardProps {
 
 const statusColors = {
   todo: "bg-muted",
-  "in-progress": "bg-cohere-blue-500 text-white",
+  "in-progress": "bg-cohere-green-800 text-white",
   review: "bg-cohere-purple-700 text-white",
-  done: "bg-cohere-green-700 text-white",
+  done: "bg-cohere-green-800 text-white",
 };
 
 const priorityColors = {
   low: "bg-muted",
-  medium: "bg-cohere-blue-500 text-white",
+  medium: "bg-cohere-green-800 text-white",
   high: "bg-cohere-red-500 text-white",
   urgent: "bg-cohere-red-600 text-white animate-pulse",
 };
@@ -67,26 +68,79 @@ export function TaskCard({
     onStatusChange?.(id, nextStatus);
   };
 
+  // Format date with absolute + relative format: "2025/09/17 (in 3 days)"
+  const formatDueDate = (date: Date) => {
+    const absoluteDate = format(date, "yyyy/MM/dd");
+    const daysFromNow = differenceInDays(date, new Date());
+    
+    let relativeText = "";
+    if (daysFromNow > 0) {
+      relativeText = `in ${daysFromNow} day${daysFromNow > 1 ? 's' : ''}`;
+    } else if (daysFromNow === 0) {
+      relativeText = "today";
+    } else {
+      relativeText = `${Math.abs(daysFromNow)} day${Math.abs(daysFromNow) > 1 ? 's' : ''} ago`;
+    }
+    
+    return `${absoluteDate} (${relativeText})`;
+  };
+
   return (
-    <Card 
-      className="hover-elevate cursor-pointer group" 
-      onClick={handleCardClick}
-      data-testid={`task-card-${id}`}
-    >
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm leading-tight truncate" data-testid={`task-title-${id}`}>
-              {title}
-            </h3>
-          </div>
-          <div className="flex items-center gap-1">
-            <Badge 
-              className={`h-5 text-xs ${priorityColors[priority]}`}
-              data-testid={`task-priority-${id}`}
-            >
-              {priority}
-            </Badge>
+    <TooltipProvider>
+      <Card 
+        className="hover-elevate cursor-pointer group" 
+        onClick={handleCardClick}
+        data-testid={`task-card-${id}`}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-base leading-tight mb-2" data-testid={`task-title-${id}`}>
+                {title}
+              </h3>
+              
+              {/* Due Date - Prominently displayed */}
+              {dueDate && (
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span 
+                    className="text-sm font-medium text-foreground"
+                    data-testid={`task-due-${id}`}
+                  >
+                    {formatDueDate(dueDate)}
+                  </span>
+                </div>
+              )}
+              
+              {/* Priority Badge - Prominently displayed */}
+              <div className="flex items-center gap-2">
+                <Badge 
+                  className={`text-sm font-medium ${priorityColors[priority]}`}
+                  data-testid={`task-priority-${id}`}
+                >
+                  {priority.toUpperCase()}
+                </Badge>
+                
+                {/* Description - Available on hover */}
+                {description && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm">{description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            </div>
+            
             <Button
               size="icon"
               variant="ghost"
@@ -96,59 +150,42 @@ export function TaskCard({
               <MoreHorizontal className="h-3 w-3" />
             </Button>
           </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="pt-0">
-        {description && (
-          <p className="text-xs text-muted-foreground mb-3 line-clamp-2" data-testid={`task-description-${id}`}>
-            {description}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <CardContent className="pt-0">
+          <div className="flex items-center justify-between">
             <Badge 
-              className={`h-5 text-xs cursor-pointer ${statusColors[status]}`}
+              className={`h-6 text-xs cursor-pointer ${statusColors[status]}`}
               onClick={handleStatusChange}
               data-testid={`task-status-${id}`}
             >
               {status.replace('-', ' ')}
             </Badge>
-            
-            {dueDate && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar className="w-3 h-3" />
-                <span data-testid={`task-due-${id}`}>
-                  {formatDistanceToNow(dueDate, { addSuffix: true })}
-                </span>
-              </div>
-            )}
-          </div>
 
-          <div className="flex items-center gap-1">
-            {relatedChatId && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                data-testid={`task-chat-${id}`}
-              >
-                <MessageSquare className="h-3 w-3" />
-              </Button>
-            )}
-            
-            {assignee && (
-              <Avatar className="w-6 h-6" data-testid={`task-assignee-${id}`}>
-                <AvatarImage src={assignee.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${assignee.name}`} />
-                <AvatarFallback className="text-xs">
-                  {assignee.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-            )}
+            <div className="flex items-center gap-2">
+              {relatedChatId && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  data-testid={`task-chat-${id}`}
+                >
+                  <MessageSquare className="h-3 w-3" />
+                </Button>
+              )}
+              
+              {assignee && (
+                <Avatar className="w-6 h-6" data-testid={`task-assignee-${id}`}>
+                  <AvatarImage src={assignee.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${assignee.name}`} />
+                  <AvatarFallback className="text-xs">
+                    {assignee.name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }

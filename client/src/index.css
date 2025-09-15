@@ -237,6 +237,46 @@
  */
 @layer utilities {
 
+  /* nprogress like bar */
+  #nprogress {
+    pointer-events: none;
+  }
+  #nprogress .bar {
+    background: #FF7759;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+  }
+  #nprogress .peg {
+    display: block;
+    position: absolute;
+    right: 0px;
+    width: 100px;
+    height: 100%;
+    box-shadow: 0 0 10px #FF7759, 0 0 5px #FF7759;
+    opacity: 1;
+    transform: rotate(3deg) translate(0px, -4px);
+  }
+
+  /* Sidebar collapsed behavior similar to sample */
+  #sidebar.collapsed {
+    width: 5rem; /* 80px */
+  }
+  #sidebar.collapsed .sidebar-text,
+  #sidebar.collapsed .section-toggle {
+    display: none;
+  }
+  #sidebar.collapsed .sidebar-link {
+    justify-content: center;
+  }
+  #sidebar.collapsed .sidebar-link > svg {
+    margin-left: 0 !important;
+  }
+
+
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
