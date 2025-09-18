@@ -69,7 +69,7 @@ function App() {
                     </div>
                     <ThemeToggle />
                   </header>
-                <main className="flex-1 overflow-auto border border-gray-300 bg-gray-50 rounded-lg m-2">
+                <main className={`flex-1 overflow-auto bg-card rounded-lg m-2 ${!location.startsWith('/chat') ? 'border border-card-border' : ''}`}>
                   <Router />
                 </main>
               </div>

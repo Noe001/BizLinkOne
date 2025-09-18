@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Hash, Users, Phone, Video, Settings, MessageSquare, Filter } from "lucide-react";
+import { Search, Hash, Users, Phone, Video, Settings, MessageSquare } from "lucide-react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
+import { ChatThread } from "@/components/ChatThread";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -82,6 +83,19 @@ export default function Chat() {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [showThreadsOnly, setShowThreadsOnly] = useState(false);
   
+  // Thread state
+  const [selectedThread, setSelectedThread] = useState<string | null>(null);
+  const [threadMessages, setThreadMessages] = useState<any[]>([]);
+  const [isLoadingThread, setIsLoadingThread] = useState(false);
+  
+  // Close thread when switching channels
+  useEffect(() => {
+    if (selectedThread) {
+      setSelectedThread(null);
+      setThreadMessages([]);
+    }
+  }, [channelId]);
+  
   // Ref for auto-scrolling
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -148,125 +162,184 @@ export default function Chat() {
 
   const handleReply = (messageId: string) => {
     console.log(`Replying to message ${messageId}`);
+    setSelectedThread(messageId);
+    loadThreadMessages(messageId);
   };
 
   const handleViewThread = (messageId: string) => {
     console.log(`Viewing thread for message ${messageId}`);
+    setSelectedThread(messageId);
+    loadThreadMessages(messageId);
+  };
+
+  const loadThreadMessages = async (messageId: string) => {
+    setIsLoadingThread(true);
+    try {
+      // Mock thread messages - in real app, this would be an API call
+      const mockThreadMessages = [
+        {
+          id: `thread-${messageId}-1`,
+          userId: "user-2",
+          userName: "Bob Smith",
+          content: "Great question! I've been looking into Google OAuth and Auth0.",
+          timestamp: new Date(Date.now() - 1000 * 60 * 25),
+          isOwn: false,
+        },
+        {
+          id: `thread-${messageId}-2`,
+          userId: "current-user",
+          userName: "You",
+          content: "Auth0 looks promising. What about the pricing?",
+          timestamp: new Date(Date.now() - 1000 * 60 * 15),
+          isOwn: true,
+        },
+      ];
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setThreadMessages(mockThreadMessages);
+    } catch (error) {
+      console.error('Failed to load thread messages:', error);
+      setThreadMessages([]);
+    } finally {
+      setIsLoadingThread(false);
+    }
+  };
+
+  const handleCloseThread = () => {
+    setSelectedThread(null);
+    setThreadMessages([]);
+  };
+
+  const handleSendThreadReply = async (content: string) => {
+    if (!selectedThread) return;
+    
+    console.log(`Sending thread reply to ${selectedThread}: ${content}`);
+    
+    // Mock sending thread reply - in real app, this would be an API call
+    const newReply = {
+      id: `thread-${selectedThread}-${Date.now()}`,
+      userId: "current-user",
+      userName: "You",
+      content,
+      timestamp: new Date(),
+      isOwn: true,
+    };
+    
+    setThreadMessages(prev => [...prev, newReply]);
   };
 
   return (
-    <div className="flex flex-col h-full bg-card border border-card-border rounded-lg" data-testid="page-chat">
-      {/* Chat Header - Enhanced with filters */}
-      <div className="border-b border-card-border bg-card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              {channelInfo.isChannel ? (
-                <Hash className="h-5 w-5 text-green-800" />
-              ) : (
-                <Users className="h-5 w-5 text-primary" />
-              )}
-              <h1 className="text-lg font-sans font-medium" data-testid="chat-title">
-                {channelInfo.name}
-              </h1>
-            </div>
-            <Badge variant="outline" className="text-xs font-mono uppercase" data-testid="member-count">
-              <Users className="h-3 w-3 mr-1" />
-              {channelInfo.memberCount}
-            </Badge>
-            {/* Unread count badge */}
-            {messages.filter(m => m.isUnread).length > 0 && (
-              <Badge className="bg-blue-500 text-white text-xs">
-                {messages.filter(m => m.isUnread).length} unread
+    <div className="flex h-full bg-background rounded-md">
+      {/* Main Chat Container */}
+      <div className={`flex flex-col bg-card border border-card-border rounded-lg ${selectedThread ? 'flex-1 mr-2' : 'w-full'}`} data-testid="page-chat">
+        {/* Chat Header - Enhanced with filters */}
+        <div className="border-b border-card-border bg-card p-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {channelInfo.isChannel ? (
+                  <Hash className="h-5 w-5 text-green-800" />
+                ) : (
+                  <Users className="h-5 w-5 text-primary" />
+                )}
+                <h1 className="text-lg font-sans font-medium" data-testid="chat-title">
+                  {channelInfo.name}
+                </h1>
+              </div>
+              <Badge variant="outline" className="text-xs font-mono uppercase" data-testid="member-count">
+                <Users className="h-3 w-3 mr-1" />
+                {channelInfo.memberCount}
               </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative max-w-xs">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search messages..."
-                className="pl-9"
-                data-testid="input-search-messages"
-              />
+              {/* Unread count badge */}
+              {messages.filter(m => m.isUnread).length > 0 && (
+                <Badge className="bg-blue-500 text-white text-xs">
+                  {messages.filter(m => m.isUnread).length} unread
+                </Badge>
+              )}
             </div>
-            <Button variant="ghost" size="icon" data-testid="button-voice-call">
-              <Phone className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" data-testid="button-video-call">
-              <Video className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" data-testid="button-chat-settings">
-              <Settings className="h-4 w-4" />
-            </Button>
+
+            <div className="flex items-center gap-2">
+              <div className="relative max-w-xs">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search messages..."
+                  className="pl-9"
+                  data-testid="input-search-messages"
+                />
+              </div>
+              <Button variant="ghost" size="icon" data-testid="button-voice-call">
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" data-testid="button-video-call">
+                <Video className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" data-testid="button-chat-settings">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+
+          {/* Message filters removed per design: description and filter UI intentionally omitted */}
         </div>
 
-        {/* Message filters */}
-        <div className="flex items-center gap-4">
-          {channelInfo.description && (
-            <p className="text-sm font-sans text-muted-foreground flex-1" data-testid="chat-description">
-              {channelInfo.description}
-            </p>
-          )}
-          
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={showUnreadOnly ? "unread" : showThreadsOnly ? "threads" : "all"} onValueChange={(value) => {
-              setShowUnreadOnly(value === "unread");
-              setShowThreadsOnly(value === "threads");
-            }}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Messages</SelectItem>
-                <SelectItem value="unread">Unread Only</SelectItem>
-                <SelectItem value="threads">With Threads</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto bg-card" data-testid="messages-container">
-        <div className="py-2">
-          {messagesWithUnreadMarker.length === 0 ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="text-center">
-                <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <div className="text-muted-foreground">
-                  {showUnreadOnly ? "No unread messages" : 
-                   showThreadsOnly ? "No messages with threads" : 
-                   "No messages yet. Start the conversation!"}
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto bg-card" data-testid="messages-container">
+          <div className="py-2">
+            {messagesWithUnreadMarker.length === 0 ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <div className="text-muted-foreground">
+                    {showUnreadOnly ? "No unread messages" : 
+                     showThreadsOnly ? "No messages with threads" : 
+                     "No messages yet. Start the conversation!"}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            messagesWithUnreadMarker.map((message) => (
-              <ChatMessage
-                key={message.id}
-                {...message}
-                isOwn={message.userId === "current-user"}
-                onConvertToTask={handleConvertToTask}
-                onConvertToKnowledge={handleConvertToKnowledge}
-                onReply={handleReply}
-                onViewThread={handleViewThread}
-              />
-            ))
-          )}
-          <div ref={messagesEndRef} />
+            ) : (
+              messagesWithUnreadMarker.map((message) => (
+                <ChatMessage
+                  key={message.id}
+                  {...message}
+                  isOwn={message.userId === "current-user"}
+                  onConvertToTask={handleConvertToTask}
+                  onConvertToKnowledge={handleConvertToKnowledge}
+                  onReply={handleReply}
+                  onViewThread={handleViewThread}
+                />
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
+
+        {/* Chat Input */}
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          placeholder={`Message #${channelInfo.name}`}
+          disabled={sendMessageMutation.isPending}
+        />
       </div>
 
-      {/* Chat Input */}
-      <ChatInput
-        onSendMessage={handleSendMessage}
-        placeholder={`Message #${channelInfo.name}`}
-        disabled={sendMessageMutation.isPending}
-      />
+      {/* Thread UI - conditionally rendered side by side */}
+      {selectedThread && (
+        <div className="w-96">
+          <ChatThread
+            parentMessage={{
+              id: selectedThread,
+              userId: messages.find(m => m.id === selectedThread)?.userId || "",
+              userName: messages.find(m => m.id === selectedThread)?.userName || "",
+              content: messages.find(m => m.id === selectedThread)?.content || "",
+              timestamp: messages.find(m => m.id === selectedThread)?.timestamp || new Date(),
+            }}
+            threadMessages={threadMessages}
+            onClose={handleCloseThread}
+            onSendReply={handleSendThreadReply}
+            isLoading={isLoadingThread}
+          />
+        </div>
+      )}
     </div>
   );
 }
