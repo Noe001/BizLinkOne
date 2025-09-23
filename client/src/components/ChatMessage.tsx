@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, BookOpen, MoreHorizontal, Reply, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
+import { NewTaskModal, NewTaskData } from "./NewTaskModal";
+import { CreateKnowledgeModal, CreateKnowledgeData } from "./CreateKnowledgeModal";
 
 interface ChatMessageProps {
   id: string;
@@ -11,6 +14,7 @@ interface ChatMessageProps {
   userAvatar?: string;
   content: string;
   timestamp: Date;
+  channelId?: string;
   isOwn?: boolean;
   isUnread?: boolean;
   isFirstUnread?: boolean;
@@ -47,14 +51,27 @@ export function ChatMessage(props: ChatMessageProps) {
     onViewThread,
   } = props;
 
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
+
   const handleConvertToTask = () => {
-    console.log(`Converting message ${id} to task`);
-    onConvertToTask?.(id);
+    setShowTaskModal(true);
   };
 
   const handleConvertToKnowledge = () => {
-    console.log(`Converting message ${id} to knowledge`);
+    setShowKnowledgeModal(true);
+  };
+
+  const handleTaskCreate = (taskData: NewTaskData) => {
+    console.log("Creating task from message:", { messageId: id, taskData });
+    onConvertToTask?.(id);
+    // Here you would typically call an API to create the task
+  };
+
+  const handleKnowledgeCreate = (knowledgeData: CreateKnowledgeData) => {
+    console.log("Creating knowledge from message:", { messageId: id, knowledgeData });
     onConvertToKnowledge?.(id);
+    // Here you would typically call an API to create the knowledge article
   };
 
   const handleReply = () => {
@@ -167,6 +184,25 @@ export function ChatMessage(props: ChatMessageProps) {
           </div>
         </div>
       </div>
+
+      {/* Task Creation Modal */}
+      <NewTaskModal
+        open={showTaskModal}
+        onOpenChange={setShowTaskModal}
+        onTaskCreate={handleTaskCreate}
+        messageContent={content}
+        relatedChatId={props.channelId}
+      />
+
+      {/* Knowledge Creation Modal */}
+      <CreateKnowledgeModal
+        isOpen={showKnowledgeModal}
+        onClose={() => setShowKnowledgeModal(false)}
+        onCreateKnowledge={handleKnowledgeCreate}
+        messageContent={content}
+        messageAuthor={userName}
+        relatedChatId={props.channelId}
+      />
     </>
   );
 }

@@ -172,6 +172,10 @@ export default function Chat() {
     loadThreadMessages(messageId);
   };
 
+  const handleShareKnowledge = (knowledgeId: string, title: string, summary: string) => {
+    console.log(`Shared knowledge article: ${title} (${knowledgeId})`);
+  };
+
   const loadThreadMessages = async (messageId: string) => {
     setIsLoadingThread(true);
     try {
@@ -234,53 +238,86 @@ export default function Chat() {
       {/* Main Chat Container */}
       <div className={`flex flex-col bg-card border border-card-border rounded-lg ${selectedThread ? 'flex-1 mr-2' : 'w-full'}`} data-testid="page-chat">
         {/* Chat Header - Enhanced with filters */}
-        <div className="border-b border-card-border bg-card p-2">
+        <div className="border-b border-card-border bg-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 {channelInfo.isChannel ? (
-                  <Hash className="h-5 w-5 text-green-800" />
+                  <>
+                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
+                      <Hash className="h-4 w-4 text-green-700" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-semibold" data-testid="chat-title">
+                        {channelInfo.name}
+                      </h1>
+                      <p className="text-sm text-muted-foreground">
+                        {channelInfo.memberCount} members • {channelInfo.description}
+                      </p>
+                    </div>
+                  </>
                 ) : (
-                  <Users className="h-5 w-5 text-primary" />
+                  <>
+                    <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
+                      <Users className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-semibold" data-testid="chat-title">
+                        {channelInfo.name}
+                      </h1>
+                      <p className="text-sm text-muted-foreground">
+                        Direct message • {channelInfo.memberCount} participants
+                      </p>
+                    </div>
+                  </>
                 )}
-                <h1 className="text-lg font-sans font-medium" data-testid="chat-title">
-                  {channelInfo.name}
-                </h1>
               </div>
-              <Badge variant="outline" className="text-xs font-mono uppercase" data-testid="member-count">
-                <Users className="h-3 w-3 mr-1" />
-                {channelInfo.memberCount}
-              </Badge>
-              {/* Unread count badge */}
-              {messages.filter(m => m.isUnread).length > 0 && (
-                <Badge className="bg-blue-500 text-white text-xs">
-                  {messages.filter(m => m.isUnread).length} unread
-                </Badge>
-              )}
             </div>
-
+            
             <div className="flex items-center gap-2">
-              <div className="relative max-w-xs">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search messages..."
-                  className="pl-9"
-                  data-testid="input-search-messages"
-                />
-              </div>
-              <Button variant="ghost" size="icon" data-testid="button-voice-call">
+              {/* Quick actions */}
+              <Button variant="ghost" size="sm" className="px-2">
                 <Phone className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" data-testid="button-video-call">
+              <Button variant="ghost" size="sm" className="px-2">
                 <Video className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" data-testid="button-chat-settings">
+              
+              {/* Message filters */}
+              <div className="flex items-center gap-1 ml-4">
+                <Button
+                  variant={showUnreadOnly ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setShowUnreadOnly(!showUnreadOnly)}
+                  className="text-xs"
+                >
+                  Unread only
+                  {messages.filter(m => m.isUnread).length > 0 && (
+                    <Badge variant="destructive" className="ml-1 h-4 w-4 p-0 text-xs">
+                      {messages.filter(m => m.isUnread).length}
+                    </Badge>
+                  )}
+                </Button>
+                <Button
+                  variant={showThreadsOnly ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setShowThreadsOnly(!showThreadsOnly)}
+                  className="text-xs"
+                >
+                  Threads only
+                  {messages.filter(m => m.threadCount).length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 text-xs">
+                      {messages.filter(m => m.threadCount).length}
+                    </Badge>
+                  )}
+                </Button>
+              </div>
+              
+              <Button variant="ghost" size="sm" className="px-2">
                 <Settings className="h-4 w-4" />
               </Button>
             </div>
           </div>
-
-          {/* Message filters removed per design: description and filter UI intentionally omitted */}
         </div>
 
         {/* Messages Area */}
@@ -302,6 +339,7 @@ export default function Chat() {
                 <ChatMessage
                   key={message.id}
                   {...message}
+                  channelId={channelId}
                   isOwn={message.userId === "current-user"}
                   onConvertToTask={handleConvertToTask}
                   onConvertToKnowledge={handleConvertToKnowledge}
@@ -319,6 +357,7 @@ export default function Chat() {
           onSendMessage={handleSendMessage}
           placeholder={`Message #${channelInfo.name}`}
           disabled={sendMessageMutation.isPending}
+          onShareKnowledge={handleShareKnowledge}
         />
       </div>
 

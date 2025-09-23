@@ -168,9 +168,30 @@ export function TaskCard({
                   size="icon"
                   variant="ghost"
                   className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/chat/channel/${relatedChatId}`;
+                  }}
+                  title="Go to related chat"
                   data-testid={`task-chat-${id}`}
                 >
                   <MessageSquare className="h-3 w-3" />
+                </Button>
+              )}
+
+              {relatedMeetingId && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/meetings/${relatedMeetingId}`;
+                  }}
+                  title="Go to related meeting"
+                  data-testid={`task-meeting-${id}`}
+                >
+                  <Calendar className="h-3 w-3" />
                 </Button>
               )}
               
