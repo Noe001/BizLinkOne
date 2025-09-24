@@ -179,24 +179,29 @@ export function ChatInput({
               </Button>
             </div>
 
-            {/* Ctrl+Enter hint */}
-            {showShortcut && (
-              <div className="text-xs text-muted-foreground mr-2">
-                <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Ctrl</kbd>
-                <span className="mx-1">+</span>
-                <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd>
-              </div>
-            )}
+            <div className="text-xs text-muted-foreground">
+
+              {/* Ctrl+Enter hint */}
+              {showShortcut && (
+                <>
+                  <kbd className="px-1 py-0.5 rounded text-xs">Ctrl</kbd>
+                  <span className="mx-1">+</span>
+                  <kbd className="px-1 py-0.5 rounded text-xs">Enter</kbd>
+                </>
+              )}
+
+              <Button
+                size="icon"
+                onClick={handleSend}
+                disabled={!message.trim() || disabled}
+                data-testid="button-send-message"
+                className="h-7 w-7 bg-cohere-green-700 hover:bg-cohere-blue-800"
+              >
+                <Send className="h-6 w-6 text-white" />
+              </Button>
+            </div>
           </div>
         </div>
-        <Button
-          onClick={handleSend}
-          disabled={!message.trim() || disabled}
-          data-testid="button-send-message"
-          className="bg-cohere-blue-500 hover:bg-cohere-blue-600"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Knowledge Search Modal */}
