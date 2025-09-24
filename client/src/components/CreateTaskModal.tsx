@@ -9,11 +9,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, User, Plus, X, AlertCircle } from "lucide-react";
+import { CalendarIcon, User, Plus, X, AlertCircle, CheckSquare } from "lucide-react";
 import { format } from "date-fns";
 import { TaskStatus, TaskPriority } from "./TaskCard";
-import { setPriority } from "os";
-import { title } from "process";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -165,23 +163,10 @@ export function CreateTaskModal({
   };
 
   const selectedAssignee = mockTeamMembers.find(member => member.id === formData.assigneeId);
-    setDescription("");
-    setPriority("medium");
-    setStatus("todo");
-    setAssigneeId("unassigned");
-    setDueDate(undefined);
-    
-    onClose();
-  };
 
   const handleClose = () => {
     // Reset form when closing
-    setTitle("");
-    setDescription(messageContent);
-    setPriority("medium");
-    setStatus("todo");
-    setAssigneeId("unassigned");
-    setDueDate(undefined);
+    handleReset();
     onClose();
   };
 
@@ -200,14 +185,14 @@ export function CreateTaskModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+  <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="task-title">Title *</Label>
             <Input
               id="task-title"
               placeholder="Enter task title..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               required
               data-testid="task-title-input"
             />
@@ -218,8 +203,8 @@ export function CreateTaskModal({
             <Textarea
               id="task-description"
               placeholder="Task description..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={4}
               data-testid="task-description-input"
             />
@@ -228,7 +213,7 @@ export function CreateTaskModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="task-priority">Priority</Label>
-              <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+              <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as TaskPriority }))}>
                 <SelectTrigger data-testid="task-priority-select">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
@@ -243,7 +228,7 @@ export function CreateTaskModal({
 
             <div className="grid gap-2">
               <Label htmlFor="task-status">Status</Label>
-              <Select value={status} onValueChange={(value) => setStatus(value as TaskStatus)}>
+              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as TaskStatus }))}>
                 <SelectTrigger data-testid="task-status-select">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -259,13 +244,13 @@ export function CreateTaskModal({
 
           <div className="grid gap-2">
             <Label htmlFor="task-assignee">Assignee</Label>
-            <Select value={assigneeId} onValueChange={setAssigneeId}>
+            <Select value={formData.assigneeId ?? "unassigned"} onValueChange={(val) => setFormData(prev => ({ ...prev, assigneeId: val === 'unassigned' ? undefined : val }))}>
               <SelectTrigger data-testid="task-assignee-select">
                 <SelectValue placeholder="Select assignee (optional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unassigned">Unassigned</SelectItem>
-                {mockAssignees.map((assignee) => (
+                {mockTeamMembers.map((assignee) => (
                   <SelectItem key={assignee.id} value={assignee.id}>
                     {assignee.name}
                   </SelectItem>
@@ -277,24 +262,21 @@ export function CreateTaskModal({
           <div className="grid gap-2">
             <Label>Due Date</Label>
             <Popover>
-              <PopoverTrigger asChild>
+                <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dueDate && "text-muted-foreground"
-                  )}
+                  className={`w-full justify-start text-left font-normal ${!formData.dueDate ? 'text-muted-foreground' : ''}`}
                   data-testid="task-due-date-button"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, "PPP") : "Pick a date (optional)"}
+                  {formData.dueDate ? format(formData.dueDate, "PPP") : "Pick a date (optional)"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={dueDate}
-                  onSelect={setDueDate}
+                  selected={formData.dueDate}
+                  onSelect={(d: Date | undefined) => setFormData(prev => ({ ...prev, dueDate: d }))}
                   initialFocus
                 />
               </PopoverContent>
@@ -305,7 +287,7 @@ export function CreateTaskModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!title.trim()} data-testid="create-task-button">
+            <Button type="submit" disabled={!formData.title.trim()} data-testid="create-task-button">
               Create Task
             </Button>
           </DialogFooter>

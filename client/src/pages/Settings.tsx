@@ -11,119 +11,87 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
-  User, 
-  Bell, 
+  Settings as SettingsIcon,
+  Users, 
   Shield, 
-  Palette, 
+  Building, 
   Globe, 
-  Camera, 
   Save, 
   AlertCircle,
-  Moon,
-  Sun,
-  Monitor,
-  Mail,
-  MessageSquare,
-  Calendar,
-  CheckSquare,
-  Lock,
-  Eye,
+  Plus,
   Trash2,
-  Download,
-  Upload
+  Edit,
+  Crown,
+  Mail,
+  UserCheck,
+  UserX,
+  Calendar,
+  Database,
+  BarChart3,
+  Clock
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 
-// Mock user data
-const mockUser = {
-  id: "current-user",
-  name: "John Doe",
-  email: "john.doe@company.com",
-  avatar: "",
-  role: "Admin",
-  department: "Engineering",
-  joinDate: "2024-01-15",
-  timezone: "America/New_York",
-  language: "en"
+// Mock workspace data
+const mockWorkspace = {
+  id: "workspace-1",
+  name: "Acme Corporation",
+  domain: "acme.example.com",
+  plan: "Enterprise",
+  memberCount: 47,
+  createdAt: "2024-01-01",
+  billing: {
+    plan: "Enterprise",
+    seats: 50,
+    usedSeats: 47,
+    nextBilling: "2025-01-01",
+    amount: 2500
+  }
 };
+
+// Mock team members
+const mockTeamMembers = [
+  { id: "1", name: "John Doe", email: "john@acme.com", role: "Admin", status: "active", joinDate: "2024-01-15" },
+  { id: "2", name: "Sarah Wilson", email: "sarah@acme.com", role: "Manager", status: "active", joinDate: "2024-02-01" },
+  { id: "3", name: "Mike Johnson", email: "mike@acme.com", role: "Member", status: "active", joinDate: "2024-02-15" },
+  { id: "4", name: "Alice Cooper", email: "alice@acme.com", role: "Member", status: "pending", joinDate: "2024-03-01" }
+];
 
 export default function Settings() {
   const [location, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("general");
   const [isDirty, setIsDirty] = useState(false);
 
   // Set active tab based on URL parameter
   useEffect(() => {
     const pathParts = location?.split('/');
     const tabParam = pathParts?.[2]; // /settings/[tab]
-    if (tabParam && ['profile', 'notifications', 'appearance', 'security', 'privacy'].includes(tabParam)) {
+    if (tabParam && ['general', 'team', 'security', 'billing'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [location]);
   
-  // Profile settings
-  const [profileData, setProfileData] = useState({
-    name: mockUser.name,
-    email: mockUser.email,
-    department: mockUser.department,
-    timezone: mockUser.timezone,
-  });
-
-  // Notification settings
-  const [notifications, setNotifications] = useState({
-    email: {
-      mentions: true,
-      directMessages: true,
-      taskAssignments: true,
-      meetingReminders: true,
-      weeklyDigest: false,
-    },
-    push: {
-      mentions: true,
-      directMessages: true,
-      taskDeadlines: true,
-      meetingStart: true,
-    },
-    inApp: {
-      allActivity: true,
-      soundEnabled: true,
-      desktopNotifications: true,
-    }
-  });
-
-  // Appearance settings
-  const [appearance, setAppearance] = useState({
-    theme: "system",
-    accentColor: "blue",
-    sidebarCollapsed: false,
-    compactMode: false,
-  });
-
-  // Privacy settings
-  const [privacy, setPrivacy] = useState({
-    profileVisibility: "team",
-    showOnlineStatus: true,
-    shareActivity: true,
-    dataAnalytics: true,
+  // Workspace settings
+  const [workspaceData, setWorkspaceData] = useState({
+    name: mockWorkspace.name,
+    domain: mockWorkspace.domain,
+    description: "A collaborative workspace for Acme Corporation team members.",
+    timezone: "America/New_York",
+    language: "en",
+    allowGuestAccess: true,
+    requireTwoFactor: false,
+    sessionTimeout: 30
   });
 
   const handleSave = () => {
-    console.log("Saving settings...");
+    console.log("Saving workspace settings...");
     setIsDirty(false);
     // Here you would typically make API calls to save the settings
   };
 
-  const handleProfileChange = (field: string, value: string) => {
-    setProfileData(prev => ({ ...prev, [field]: value }));
-    setIsDirty(true);
-  };
-
-  const handleNotificationChange = (category: keyof typeof notifications, field: string, value: boolean) => {
-    setNotifications(prev => ({
-      ...prev,
-      [category]: { ...prev[category], [field]: value }
-    }));
+  const handleWorkspaceChange = (field: string, value: string | boolean | number) => {
+    setWorkspaceData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };
 
@@ -132,9 +100,9 @@ export default function Settings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Workspace Settings</h1>
           <p className="text-muted-foreground">
-            Manage your account settings and preferences.
+            Manage workspace configuration, team members, and organization settings.
           </p>
         </div>
         {isDirty && (
@@ -155,120 +123,68 @@ export default function Settings() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Profile
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <SettingsIcon className="h-4 w-4" />
+            General
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Appearance
+          <TabsTrigger value="team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Team Management
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             Security
           </TabsTrigger>
-          <TabsTrigger value="privacy" className="flex items-center gap-2">
-            <Eye className="h-4 w-4" />
-            Privacy
+          <TabsTrigger value="billing" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Billing & Plans
           </TabsTrigger>
         </TabsList>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6">
+        {/* General Tab */}
+        <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile Information
+                <Building className="h-5 w-5" />
+                Workspace Information
               </CardTitle>
               <CardDescription>
-                Update your personal information and contact details.
+                Basic information about your workspace and organization.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Avatar Section */}
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={mockUser.avatar} alt={mockUser.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                      {mockUser.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-medium">{mockUser.name}</h3>
-                    <Badge variant="outline">{mockUser.role}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Member since {new Date(mockUser.joinDate).toLocaleDateString()}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Photo
-                    </Button>
-                    <Button size="sm" variant="ghost" className="text-red-600">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Basic Information */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="workspace-name">Workspace Name</Label>
                   <Input 
-                    id="name"
-                    value={profileData.name}
-                    onChange={(e) => handleProfileChange('name', e.target.value)}
+                    id="workspace-name"
+                    value={workspaceData.name}
+                    onChange={(e) => handleWorkspaceChange('name', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="workspace-domain">Domain</Label>
                   <Input 
-                    id="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => handleProfileChange('email', e.target.value)}
+                    id="workspace-domain"
+                    value={workspaceData.domain}
+                    onChange={(e) => handleWorkspaceChange('domain', e.target.value)}
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="workspace-description">Description</Label>
+                <Input 
+                  id="workspace-description"
+                  value={workspaceData.description}
+                  onChange={(e) => handleWorkspaceChange('description', e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Select value={profileData.department} onValueChange={(value) => handleProfileChange('department', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Engineering">Engineering</SelectItem>
-                      <SelectItem value="Design">Design</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Sales">Sales</SelectItem>
-                      <SelectItem value="Support">Support</SelectItem>
-                      <SelectItem value="HR">Human Resources</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select value={profileData.timezone} onValueChange={(value) => handleProfileChange('timezone', value)}>
+                  <Label htmlFor="workspace-timezone">Default Timezone</Label>
+                  <Select value={workspaceData.timezone} onValueChange={(value) => handleWorkspaceChange('timezone', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -283,169 +199,119 @@ export default function Settings() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="workspace-language">Default Language</Label>
+                  <Select value={workspaceData.language} onValueChange={(value) => handleWorkspaceChange('language', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                      <SelectItem value="de">German</SelectItem>
+                      <SelectItem value="ja">Japanese</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                Access & Permissions
+              </CardTitle>
+              <CardDescription>
+                Control who can access your workspace and how.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Guest Access</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow external users to be invited as guests
+                  </p>
+                </div>
+                <Switch
+                  checked={workspaceData.allowGuestAccess}
+                  onCheckedChange={(checked) => handleWorkspaceChange('allowGuestAccess', checked)}
+                />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-6">
+        {/* Team Management Tab */}
+        <TabsContent value="team" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Email Notifications
+                <Users className="h-5 w-5" />
+                Team Members
+                <Badge variant="secondary">{mockTeamMembers.length} members</Badge>
               </CardTitle>
               <CardDescription>
-                Configure when you receive email notifications.
+                Manage team members, roles, and permissions.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Object.entries(notifications.email).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {key === 'mentions' && 'When someone mentions you in a message'}
-                      {key === 'directMessages' && 'When you receive a direct message'}
-                      {key === 'taskAssignments' && 'When you are assigned to a task'}
-                      {key === 'meetingReminders' && 'Reminders before scheduled meetings'}
-                      {key === 'weeklyDigest' && 'Weekly summary of your activity'}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={value}
-                    onCheckedChange={(checked) => handleNotificationChange('email', key, checked)}
-                  />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Push Notifications
-              </CardTitle>
-              <CardDescription>
-                Configure real-time push notifications.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Object.entries(notifications.push).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {key === 'mentions' && 'Instant notifications for mentions'}
-                      {key === 'directMessages' && 'Instant notifications for DMs'}
-                      {key === 'taskDeadlines' && 'Alerts for approaching task deadlines'}
-                      {key === 'meetingStart' && 'Notifications when meetings begin'}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={value}
-                    onCheckedChange={(checked) => handleNotificationChange('push', key, checked)}
-                  />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Appearance Tab */}
-        <TabsContent value="appearance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Theme & Display
-              </CardTitle>
-              <CardDescription>
-                Customize the look and feel of your workspace.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label>Theme</Label>
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { value: 'light', icon: Sun, label: 'Light' },
-                    { value: 'dark', icon: Moon, label: 'Dark' },
-                    { value: 'system', icon: Monitor, label: 'System' }
-                  ].map((theme) => (
-                    <Card 
-                      key={theme.value}
-                      className={`cursor-pointer transition-colors ${
-                        appearance.theme === theme.value ? 'ring-2 ring-primary' : ''
-                      }`}
-                      onClick={() => setAppearance(prev => ({ ...prev, theme: theme.value }))}
-                    >
-                      <CardContent className="flex flex-col items-center justify-center p-6">
-                        <theme.icon className="h-8 w-8 mb-2" />
-                        <span className="text-sm font-medium">{theme.label}</span>
-                      </CardContent>
-                    </Card>
-                  ))}
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Invite Members
+                  </Button>
+                  <Button variant="outline">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Bulk Invite
+                  </Button>
                 </div>
               </div>
-
-              <Separator />
-
+              
               <div className="space-y-3">
-                <Label>Accent Color</Label>
-                <div className="grid grid-cols-8 gap-2">
-                  {[
-                    'blue', 'green', 'purple', 'red', 'orange', 'yellow', 'pink', 'indigo'
-                  ].map((color) => (
-                    <button
-                      key={color}
-                      className={`h-8 w-8 rounded-full ${
-                        color === 'blue' ? 'bg-blue-500' :
-                        color === 'green' ? 'bg-green-500' :
-                        color === 'purple' ? 'bg-purple-500' :
-                        color === 'red' ? 'bg-red-500' :
-                        color === 'orange' ? 'bg-orange-500' :
-                        color === 'yellow' ? 'bg-yellow-500' :
-                        color === 'pink' ? 'bg-pink-500' :
-                        'bg-indigo-500'
-                      } ${
-                        appearance.accentColor === color ? 'ring-2 ring-offset-2 ring-primary' : ''
-                      }`}
-                      onClick={() => setAppearance(prev => ({ ...prev, accentColor: color }))}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Compact Mode</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Reduce spacing and padding for a more compact interface
-                    </p>
+                {mockTeamMembers.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback>
+                          {member.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{member.name}</p>
+                          {member.role === 'Admin' && <Crown className="h-4 w-4 text-yellow-500" />}
+                          <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
+                            {member.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select value={member.role} disabled={member.role === 'Admin'}>
+                        <SelectTrigger className="w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Admin">Admin</SelectItem>
+                          <SelectItem value="Manager">Manager</SelectItem>
+                          <SelectItem value="Member">Member</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="sm">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <Switch
-                    checked={appearance.compactMode}
-                    onCheckedChange={(checked) => setAppearance(prev => ({ ...prev, compactMode: checked }))}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Sidebar Collapsed by Default</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Start with the sidebar in collapsed state
-                    </p>
-                  </div>
-                  <Switch
-                    checked={appearance.sidebarCollapsed}
-                    onCheckedChange={(checked) => setAppearance(prev => ({ ...prev, sidebarCollapsed: checked }))}
-                  />
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -456,151 +322,85 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                Password & Authentication
+                <Shield className="h-5 w-5" />
+                Security Policies
               </CardTitle>
               <CardDescription>
-                Manage your account security and authentication methods.
+                Configure security settings and authentication requirements.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Current Password</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Last changed 3 months ago
-                    </p>
-                  </div>
-                  <Button variant="outline">Change Password</Button>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Require Two-Factor Authentication</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enforce 2FA for all workspace members
+                  </p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Two-Factor Authentication</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Add an extra layer of security to your account
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-green-600">
-                    Enabled
-                  </Badge>
-                </div>
+                <Switch
+                  checked={workspaceData.requireTwoFactor}
+                  onCheckedChange={(checked) => handleWorkspaceChange('requireTwoFactor', checked)}
+                />
               </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium">Active Sessions</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium">Current Session</p>
-                      <p className="text-xs text-muted-foreground">
-                        Chrome on Windows • New York, NY
-                      </p>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium">Mobile App</p>
-                      <p className="text-xs text-muted-foreground">
-                        iOS • Last seen 2 hours ago
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="text-red-600">
-                      Revoke
-                    </Button>
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label>Session Timeout (minutes)</Label>
+                <Select value={workspaceData.sessionTimeout.toString()} onValueChange={(value) => handleWorkspaceChange('sessionTimeout', parseInt(value))}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="240">4 hours</SelectItem>
+                    <SelectItem value="480">8 hours</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Privacy Tab */}
-        <TabsContent value="privacy" className="space-y-6">
+        {/* Billing Tab */}
+        <TabsContent value="billing" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Privacy Settings
+                <BarChart3 className="h-5 w-5" />
+                Current Plan
               </CardTitle>
               <CardDescription>
-                Control how your information is shared and displayed.
+                Manage your subscription and billing information.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Profile Visibility</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Who can see your profile information
-                    </p>
-                  </div>
-                  <Select value={privacy.profileVisibility} onValueChange={(value) => setPrivacy(prev => ({ ...prev, profileVisibility: value }))}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="everyone">Everyone</SelectItem>
-                      <SelectItem value="team">Team Only</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="grid grid-cols-3 gap-6">
+                <div>
+                  <p className="text-sm text-muted-foreground">Current Plan</p>
+                  <p className="text-2xl font-bold">{mockWorkspace.billing.plan}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Show Online Status</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Let others see when you're online
-                    </p>
-                  </div>
-                  <Switch
-                    checked={privacy.showOnlineStatus}
-                    onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, showOnlineStatus: checked }))}
-                  />
+                <div>
+                  <p className="text-sm text-muted-foreground">Seats Used</p>
+                  <p className="text-2xl font-bold">{mockWorkspace.billing.usedSeats}/{mockWorkspace.billing.seats}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Share Activity Status</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Share what you're working on with your team
-                    </p>
-                  </div>
-                  <Switch
-                    checked={privacy.shareActivity}
-                    onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, shareActivity: checked }))}
-                  />
+                <div>
+                  <p className="text-sm text-muted-foreground">Monthly Cost</p>
+                  <p className="text-2xl font-bold">${mockWorkspace.billing.amount}</p>
                 </div>
               </div>
-
+              
               <Separator />
-
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium">Data & Analytics</h4>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Usage Analytics</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Help improve the platform by sharing usage data
-                    </p>
-                  </div>
-                  <Switch
-                    checked={privacy.dataAnalytics}
-                    onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, dataAnalytics: checked }))}
-                  />
+              
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">Next billing date</p>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(mockWorkspace.billing.nextBilling).toLocaleDateString()}
+                  </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download My Data
-                  </Button>
-                  <Button variant="outline" className="text-red-600">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
-                  </Button>
+                  <Button variant="outline">Change Plan</Button>
+                  <Button variant="outline">Add Seats</Button>
                 </div>
               </div>
             </CardContent>

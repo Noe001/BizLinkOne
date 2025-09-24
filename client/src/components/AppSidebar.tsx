@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLocation, Link } from "wouter";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 // todo: remove mock functionality
 const mockChannels = [
@@ -33,11 +34,11 @@ const mockDirectMessages = [
 ];
 
 const mainNavItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Projects", url: "/projects", icon: FolderOpen },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
-  { title: "Knowledge", url: "/knowledge", icon: BookOpen },
-  { title: "Meetings", url: "/meetings", icon: Calendar },
+  { key: "nav.dashboard", testId: "dashboard", url: "/", icon: Home },
+  { key: "nav.projects", testId: "projects", url: "/projects", icon: FolderOpen },
+  { key: "nav.tasks", testId: "tasks", url: "/tasks", icon: CheckSquare },
+  { key: "nav.knowledge", testId: "knowledge", url: "/knowledge", icon: BookOpen },
+  { key: "nav.meetings", testId: "meetings", url: "/meetings", icon: Calendar },
 ];
 
 export function AppSidebar() {
@@ -48,6 +49,8 @@ export function AppSidebar() {
   const [settingsOpen, setSettingsOpen] = React.useState(true);
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+  
+  const { t } = useTranslation();
   
   const isActive = (url: string) => {
     if (url === "/") {
@@ -80,8 +83,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
           {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase()}`}>
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild data-testid={`nav-${item.testId}`}>
                     <Link 
                       href={item.url} 
                       className="flex items-center py-0.5"
@@ -92,7 +95,7 @@ export function AppSidebar() {
                         <div className="mr-3 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
                       )}
                       <item.icon className={isActive(item.url) ? "" : "mr-3"} />
-                      <span className="text-sm font-sans">{item.title}</span>
+                      <span className="text-sm font-sans">{t(item.key)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -113,7 +116,7 @@ export function AppSidebar() {
                     data-active={false}
                   >
                     <MessageSquare className="mr-3 w-4 h-4" />
-                    <span className="text-sm font-sans">Chat</span>
+                    <span className="text-sm font-sans">{t('nav.chat')}</span>
                     <div className="ml-auto flex items-center gap-2">
                       {/* badge should not block clicks on the header button */}
                       <Badge variant="secondary" className="h-4 text-xs pointer-events-none">
@@ -136,7 +139,7 @@ export function AppSidebar() {
                     onClick={() => setPlatformOpen((s) => !s)} 
                     className="section-toggle flex items-center justify-between w-full text-left"
                   >
-                    <span className="text-xs uppercase font-mono text-green-800">Platform</span>
+                    <span className="text-xs uppercase font-mono text-green-800">{t('nav.platform')}</span>
                     <svg className={`w-4 h-4 text-green-800 transition-transform duration-300 ${platformOpen ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </button>
                 </SidebarGroupLabel>
@@ -172,7 +175,7 @@ export function AppSidebar() {
                       <div className="mt-2">
                         <Button size="sm" variant="ghost" className="w-full justify-center" data-testid="button-create-channel">
                           <Plus className="mr-2 h-3 w-3" />
-                          Create channel
+                          {t('nav.createChannel')}
                         </Button>
                       </div>
                     </div>
@@ -186,7 +189,7 @@ export function AppSidebar() {
                     onClick={() => setDmOpen((s) => !s)} 
                     className="section-toggle flex items-center justify-between w-full text-left"
                   >
-                    <span className="text-xs uppercase font-mono text-green-800">Direct Messages</span>
+                    <span className="text-xs uppercase font-mono text-green-800">{t('nav.directMessages')}</span>
                     <svg className={`w-4 h-4 text-green-800 transition-transform duration-300 ${dmOpen ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </button>
                 </SidebarGroupLabel>
@@ -234,7 +237,7 @@ export function AppSidebar() {
                     <div className="mt-2">
                       <Button size="sm" variant="ghost" className="w-full justify-center" data-testid="button-create-dm">
                         <Plus className="mr-2 h-3 w-3" />
-                        New DM
+                        {t('nav.newDm')}
                       </Button>
                     </div>
                   </div>
@@ -258,7 +261,7 @@ export function AppSidebar() {
                   <div className="mr-3 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
                 )}
                 <Settings className={isActive('/settings') ? "" : "mr-3"} />
-                <span>Settings</span>
+                <span>{t('nav.settings')}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

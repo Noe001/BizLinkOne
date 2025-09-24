@@ -207,6 +207,7 @@ export default function Tasks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
+          <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
           <p className="text-muted-foreground">
             Manage your team's tasks and track progress across projects.
           </p>
@@ -273,66 +274,6 @@ export default function Tasks() {
             </Button>
           )}
         </div>
-      </div>
-
-      {/* Task Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{filteredTasks.length}</p>
-              </div>
-              <Badge variant="outline">{mockTasks.length}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {getTasksByStatus("in-progress").length}
-                </p>
-              </div>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                Active
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Review</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {getTasksByStatus("review").length}
-                </p>
-              </div>
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Pending
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {getTasksByStatus("done").length}
-                </p>
-              </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                Done
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* View Mode and Additional Filters */}

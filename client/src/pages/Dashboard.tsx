@@ -1,15 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, CheckSquare, BookOpen, Calendar, Users, TrendingUp, Plus, Bell, FolderOpen, Target, Clock } from "lucide-react";
+// Tabs removed from Dashboard
+import { MessageSquare, CheckSquare, BookOpen, Calendar, TrendingUp, Plus, FolderOpen } from "lucide-react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { TaskCard } from "@/components/TaskCard";
 import type { TaskStatus } from "@/components/TaskCard";
 import { KnowledgeCard } from "@/components/KnowledgeCard";
 import { MeetingCard } from "@/components/MeetingCard";
 import type { MeetingStatus } from "@/components/MeetingCard";
-import { NotificationPanel, useNotifications } from "@/components/NotificationPanel";
+import { useNotifications } from "@/components/NotificationPanel";
 import { 
   StatCardSkeleton, 
   MessageSkeleton, 
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/skeleton-components";
 import { useQuery } from "@tanstack/react-query";
 import type { ChatMessage as ChatMessageType, Task, KnowledgeArticle, Meeting } from "@shared/schema";
-import { formatDistanceToNow } from "date-fns";
+// import { formatDistanceToNow } from "date-fns";
 
 interface DashboardStats {
   activeChats: number;
@@ -79,8 +79,8 @@ const mockProjects: Project[] = [
 ];
 
 export default function Dashboard() {
-  // Notification system
-  const { notifications, isOpen, setIsOpen, addNotification, unreadCount } = useNotifications();
+  // Notification system (only need addNotification here)
+  const { addNotification } = useNotifications();
 
   // Fetch real data from API
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
@@ -187,24 +187,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsOpen(!isOpen)}
-            className="relative"
-            data-testid="notification-button"
-          >
-            <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs flex items-center justify-center"
-              >
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </Badge>
-            )}
-          </Button>
-          <Button data-testid="button-new-item">
+          <Button size="sm" data-testid="button-new-item">
             <Plus className="h-4 w-4 mr-2" />
             New
           </Button>
@@ -292,16 +275,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Main Content with Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
+      {/* Main Content */}
+      <div className="space-y-6">
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Unread Messages */}
@@ -469,145 +444,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+      </div>
 
-        <TabsContent value="projects" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockProjects.map((project) => (
-              <Card key={project.id} className="cursor-pointer transition-all hover:shadow-lg">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{project.name}</CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {project.description}
-                      </CardDescription>
-                    </div>
-                    <Badge 
-                      className={
-                        project.status === 'active' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
-                        project.status === 'planning' ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' :
-                        project.status === 'on-hold' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' :
-                        'bg-gray-100 text-gray-800 hover:bg-gray-100'
-                      }
-                    >
-                      {project.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-4">
-                  {/* Progress */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Progress</span>
-                      <span className="font-medium">{project.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          project.progress >= 80 ? 'bg-green-500' :
-                          project.progress >= 50 ? 'bg-blue-500' :
-                          project.progress >= 25 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                  </div>
+        {/* Removed projects tab content */}
 
-                  {/* Project Details */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{project.teamSize} members</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckSquare className="h-4 w-4 text-muted-foreground" />
-                      <span>{project.completedTasks}/{project.taskCount} tasks</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatDistanceToNow(project.dueDate)} left</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                      <span>{project.status}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+        {/* Removed tasks tab content */}
 
-        <TabsContent value="tasks" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {['todo', 'in-progress', 'review', 'done'].map((status) => {
-              const statusTasks = upcomingTasks.filter(task => task.status === status);
-              return (
-                <Card key={status}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium capitalize">
-                        {status === 'in-progress' ? 'In Progress' : status}
-                      </CardTitle>
-                      <Badge variant="secondary">{statusTasks.length}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {statusTasks.map((task) => (
-                      <TaskCard key={task.id} {...task} />
-                    ))}
-                    {statusTasks.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No {status} tasks
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
+        {/* Removed activity tab content */}
 
-        <TabsContent value="activity" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Messages</CardTitle>
-                <CardDescription>Latest messages from all channels</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {recentMessages.map((message) => (
-                  <ChatMessage
-                    key={message.id}
-                    {...message}
-                    channelId={message.channelId || undefined}
-                    onConvertToTask={handleConvertToTask}
-                    onConvertToKnowledge={handleConvertToKnowledge}
-                    onReply={handleReply}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Latest Knowledge Updates</CardTitle>
-                <CardDescription>Recently created or updated articles</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {recentKnowledge.map((article) => (
-                  <KnowledgeCard key={article.id} {...article} />
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Notification Panel */}
-      <NotificationPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 }

@@ -75,9 +75,13 @@ const getChannelInfo = (channelId: string): ChannelInfo => {
 };
 
 export default function Chat() {
-  // Get channelId from URL params
-  const [match, params] = useRoute("/chat/channel/:channelId");
-  const channelId = params?.channelId || "general";
+  // Support both channel and DM routes
+  const [matchType, paramsType] = useRoute("/chat/:type/:id");
+  const [matchChannel, paramsChannel] = useRoute("/chat/channel/:channelId");
+  const contextType = matchType ? (paramsType as any).type : (matchChannel ? "channel" : "channel");
+  const contextId = matchType ? (paramsType as any).id : (paramsChannel as any)?.channelId || "general";
+  const isChannelContext = contextType === "channel";
+  const channelId = isChannelContext ? contextId : undefined;
   
   // Local state for filtering
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
@@ -100,7 +104,9 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Use mock data for now - in real app, this would be API call
-  const messages = mockMessagesWithThreads.filter(msg => msg.channelId === channelId);
+  const messages = isChannelContext 
+    ? mockMessagesWithThreads.filter(msg => msg.channelId === (channelId as string)) 
+    : [];
   
   // Apply filters and identify first unread message
   const filteredMessages = messages.filter(message => {
@@ -150,7 +156,9 @@ export default function Chat() {
     sendMessageMutation.mutate(content);
   };
   
-  const channelInfo = getChannelInfo(channelId);
+  const channelInfo = isChannelContext 
+    ? getChannelInfo(channelId as string) 
+    : { name: contextId, description: "Direct message", memberCount: 2, isChannel: false };
 
   const handleConvertToTask = (messageId: string) => {
     console.log(`Converting message ${messageId} to task`);
@@ -244,7 +252,7 @@ export default function Chat() {
               <div className="flex items-center gap-2">
                 {channelInfo.isChannel ? (
                   <>
-                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg">
                       <Hash className="h-4 w-4 text-green-700" />
                     </div>
                     <div>
@@ -355,7 +363,7 @@ export default function Chat() {
         {/* Chat Input */}
         <ChatInput
           onSendMessage={handleSendMessage}
-          placeholder={`Message #${channelInfo.name}`}
+          placeholder={`Message ${isChannelContext ? '#' + channelInfo.name : '@' + channelInfo.name}`}
           disabled={sendMessageMutation.isPending}
           onShareKnowledge={handleShareKnowledge}
         />

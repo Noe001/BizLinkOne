@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Settings, User, LogOut, HelpCircle, Moon, Sun, Bell, Shield, Palette, Globe } from "lucide-react";
+import { Settings, User, LogOut, HelpCircle, Moon, Bell, Shield, Palette, Globe } from "lucide-react";
 import { Link } from "wouter";
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { SupportedLanguage } from '@/locales';
 
 interface UserProfileDropdownProps {
   collapsed?: boolean;
+  onLogout?: () => void;
 }
 
-// Mock user data - replace with actual user context
 const mockUser = {
   id: "current-user",
   name: "John Doe",
@@ -20,8 +34,14 @@ const mockUser = {
   status: "online"
 };
 
-export function UserProfileDropdown({ collapsed = false }: UserProfileDropdownProps) {
+const LANGUAGE_OPTIONS: { value: SupportedLanguage; labelKey: string }[] = [
+  { value: 'en', labelKey: 'language.english' },
+  { value: 'ja', labelKey: 'language.japanese' },
+];
+
+export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { t, language, setLanguage } = useTranslation();
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -32,7 +52,6 @@ export function UserProfileDropdown({ collapsed = false }: UserProfileDropdownPr
           data-testid="user-profile-dropdown"
         >
           {collapsed ? (
-            // Header mode - icon only
             <div className="relative">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={mockUser.avatar} alt={mockUser.name} />
@@ -40,11 +59,9 @@ export function UserProfileDropdown({ collapsed = false }: UserProfileDropdownPr
                   {mockUser.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              {/* Online status indicator */}
               <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-background" />
             </div>
           ) : (
-            // Sidebar mode - full layout
             <div className="flex items-center gap-3 w-full">
               <div className="relative">
                 <Avatar className="h-8 w-8">
@@ -53,7 +70,6 @@ export function UserProfileDropdown({ collapsed = false }: UserProfileDropdownPr
                     {mockUser.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                {/* Online status indicator */}
                 <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-background" />
               </div>
               
@@ -76,7 +92,7 @@ export function UserProfileDropdown({ collapsed = false }: UserProfileDropdownPr
       <DropdownMenuContent 
         className="w-64" 
         align="end" 
-        side="right"
+        side="bottom"
         sideOffset={8}
       >
         <DropdownMenuLabel className="p-0">
@@ -103,37 +119,37 @@ export function UserProfileDropdown({ collapsed = false }: UserProfileDropdownPr
         <DropdownMenuSeparator />
         
         <DropdownMenuItem asChild>
-          <Link href="/settings/profile" className="flex items-center gap-3 cursor-pointer">
+          <Link href="/account-settings" className="flex items-center gap-3 cursor-pointer">
             <User className="h-4 w-4" />
-            <span>View Profile</span>
+            <span>{t('userMenu.viewProfile')}</span>
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link href="/settings" className="flex items-center gap-3 cursor-pointer">
+          <Link href="/account-settings" className="flex items-center gap-3 cursor-pointer">
             <Settings className="h-4 w-4" />
-            <span>Account Settings</span>
+            <span>{t('userMenu.accountSettings')}</span>
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link href="/settings/appearance" className="flex items-center gap-3 cursor-pointer">
+          <Link href="/account-settings?tab=appearance" className="flex items-center gap-3 cursor-pointer">
             <Palette className="h-4 w-4" />
-            <span>Preferences</span>
+            <span>{t('userMenu.preferences')}</span>
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link href="/settings/notifications" className="flex items-center gap-3 cursor-pointer">
+          <Link href="/account-settings?tab=notifications" className="flex items-center gap-3 cursor-pointer">
             <Bell className="h-4 w-4" />
-            <span>Notifications</span>
+            <span>{t('userMenu.notifications')}</span>
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuItem asChild>
-          <Link href="/settings/security" className="flex items-center gap-3 cursor-pointer">
+          <Link href="/account-settings?tab=security" className="flex items-center gap-3 cursor-pointer">
             <Shield className="h-4 w-4" />
-            <span>Security & Privacy</span>
+            <span>{t('userMenu.securityPrivacy')}</span>
           </Link>
         </DropdownMenuItem>
         
@@ -141,34 +157,48 @@ export function UserProfileDropdown({ collapsed = false }: UserProfileDropdownPr
         
         <DropdownMenuItem className="flex items-center gap-3 cursor-pointer">
           <Moon className="h-4 w-4" />
-          <span>Dark Mode</span>
+          <span>{t('userMenu.darkMode')}</span>
           <Badge variant="secondary" className="ml-auto text-xs">
-            Auto
+            {t('userMenu.auto')}
           </Badge>
         </DropdownMenuItem>
         
-        <DropdownMenuItem className="flex items-center gap-3 cursor-pointer">
-          <Globe className="h-4 w-4" />
-          <span>Language</span>
-          <Badge variant="secondary" className="ml-auto text-xs">
-            EN
-          </Badge>
-        </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="flex items-center gap-3 cursor-pointer">
+            <Globe className="h-4 w-4" />
+            <span>{t('userMenu.language')}</span>
+            <Badge variant="secondary" className="ml-auto text-xs">
+              {t(`userMenu.languageTag.${language}`)}
+            </Badge>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-48">
+            <DropdownMenuRadioGroup value={language} onValueChange={(value) => setLanguage(value as SupportedLanguage)}>
+              {LANGUAGE_OPTIONS.map((option) => (
+                <DropdownMenuRadioItem key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         
         <DropdownMenuSeparator />
         
         <DropdownMenuItem asChild>
           <Link href="/help" className="flex items-center gap-3 cursor-pointer">
             <HelpCircle className="h-4 w-4" />
-            <span>Help & Support</span>
+            <span>{t('userMenu.helpSupport')}</span>
           </Link>
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem className="flex items-center gap-3 cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50">
+        <DropdownMenuItem 
+          className="flex items-center gap-3 cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50"
+          onClick={onLogout}
+        >
           <LogOut className="h-4 w-4" />
-          <span>Sign Out</span>
+          <span>{t('userMenu.signOut')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

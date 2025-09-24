@@ -76,6 +76,17 @@ export function MeetingCard({
   const isNow = status === "ongoing";
   const isUpcoming = status === "scheduled" && startTime > new Date();
 
+  // ASCII-safe time range formatter (avoids problematic unicode separators)
+  const formatMeetingRange = (start: Date, end: Date) => {
+    const today = new Date();
+    const isToday = isSameDay(start, today);
+    if (isToday) {
+      return `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`;
+    }
+    const dateStr = format(start, "MMMM d (EEE)");
+    return `${dateStr} ${format(start, "HH:mm")} - ${format(end, "HH:mm")}`;
+  };
+
   // Enhanced date formatting function
   const formatMeetingTime = (start: Date, end: Date) => {
     const today = new Date();
@@ -148,7 +159,7 @@ export function MeetingCard({
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
             <Calendar className="w-3 h-3" />
             <span data-testid={`meeting-time-${id}`} className="font-medium">
-              {formatMeetingTime(startTime, endTime)}
+              {formatMeetingRange(startTime, endTime)}
             </span>
             {isUpcoming && (
               <span className="text-blue-600 dark:text-blue-400 font-medium">

@@ -214,7 +214,7 @@ export default function Knowledge() {
   }, [articles, searchQuery, selectedTag, sortBy, dateFilter, authorFilter]);
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-full">
       {/* Main Content */}
       <div className="flex-1 p-6 pr-4" data-testid="page-knowledge">
         {/* Header */}
@@ -522,7 +522,7 @@ export default function Knowledge() {
       </div>
 
       {/* Sidebar */}
-      <div className="w-80 border-l border-border p-6 bg-muted/20">
+      <div className="w-80 border-l border-border p-6">
         {/* Popular Articles */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-4">Popular Articles</h3>
@@ -534,9 +534,9 @@ export default function Knowledge() {
                 onClick={() => handleArticleClick(article.id)}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge className="text-xs font-medium">#{index + 1}</Badge>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Eye className="h-3 w-3" />
+                  <span className="text-sm font-semibold text-green-800">#{index + 1}</span>
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Eye className="h-4 w-4" />
                     {article.views}
                   </span>
                 </div>
