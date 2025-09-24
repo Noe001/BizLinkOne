@@ -1,7 +1,7 @@
 ﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { translations, type SupportedLanguage } from "@/locales";
 
-type TranslationParams = Record<string, string | number>;
+export type TranslationParams = Record<string, string | number>;
 
 interface LanguageContextValue {
   language: SupportedLanguage;

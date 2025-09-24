@@ -126,12 +126,9 @@ export default function AccountSettings() {
               Back
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
-            <p className="text-muted-foreground">
-              Manage your personal account settings and preferences.
-            </p>
-          </div>
+          <p className="text-muted-foreground">
+            Manage your personal account settings and preferences.
+          </p>
         </div>
         {isDirty && (
           <Button onClick={handleSave} className="flex items-center gap-2">

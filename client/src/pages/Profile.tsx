@@ -87,12 +87,9 @@ export default function Profile() {
     <div className="p-6 space-y-6" data-testid="page-profile">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
-          <p className="text-muted-foreground">
-            Manage your personal information and professional details.
-          </p>
-        </div>
+        <p className="text-muted-foreground">
+          Manage your personal information and professional details.
+        </p>
         {isDirty && (
           <Button onClick={handleSave} disabled={isLoading} className="flex items-center gap-2">
             <Save className="h-4 w-4" />

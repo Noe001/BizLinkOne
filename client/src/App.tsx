@@ -132,7 +132,10 @@ function AuthenticatedApp() {
     if (path.startsWith("/tasks")) return t('nav.tasks');
     if (path.startsWith("/knowledge")) return t('nav.knowledge');
     if (path.startsWith("/meetings")) return t('nav.meetings');
-    if (path.startsWith("/settings")) return t('nav.settings');
+    if (path.startsWith("/account-settings")) return t('nav.accountSettings'); // Updated for account settings
+    if (path === "/settings" || path.startsWith("/settings/")) return t('nav.workspaceSettings'); // Updated for workspace settings
+    if (path.startsWith("/workspace/create")) return t('nav.createWorkspace'); // Updated for create workspace
+    if (path.startsWith("/workspace/join")) return t('nav.joinWorkspace'); // Updated for join workspace
     return t('nav.dashboard');
   };
 

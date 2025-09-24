@@ -107,7 +107,7 @@ export function ChatMessage(props: ChatMessageProps) {
         } ${isOwn ? 'flex-row-reverse' : ''}`} 
         data-testid={`message-${id}`}
       >
-        <Avatar className="w-9 h-9 flex-shrink-0 mt-0.5">
+        <Avatar className="w-8 h-8 flex-shrink-0 mt-0.5">
           <AvatarImage src={userAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`} />
           <AvatarFallback className="text-xs font-medium">
             {userName.split(' ').map(n => n[0]).join('').toUpperCase()}

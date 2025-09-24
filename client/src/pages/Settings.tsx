@@ -99,12 +99,9 @@ export default function Settings() {
     <div className="p-6 space-y-6" data-testid="page-settings">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Workspace Settings</h1>
-          <p className="text-muted-foreground">
-            Manage workspace configuration, team members, and organization settings.
-          </p>
-        </div>
+        <p className="text-muted-foreground">
+          Manage workspace configuration, team members, and organization settings.
+        </p>
         {isDirty && (
           <Button onClick={handleSave} className="flex items-center gap-2">
             <Save className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,15 +11,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, User, Plus, X, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { ja as jaLocale } from "date-fns/locale";
 import { TaskStatus, TaskPriority } from "./TaskCard";
-
-interface NewTaskModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onTaskCreate: (task: NewTaskData) => void;
-  messageContent?: string;
-  relatedChatId?: string;
-}
+import { useTranslation } from "@/contexts/LanguageContext";
+import { sampleParticipants, sampleChannels } from "@/data/sampleWorkspace";
 
 export interface NewTaskData {
   title: string;
@@ -33,38 +28,21 @@ export interface NewTaskData {
   estimatedHours?: number;
 }
 
-// Mock team members - in real app, this would come from user context
-const mockTeamMembers = [
-  { id: "john-doe", name: "John Doe", avatar: "", role: "Developer" },
-  { id: "sarah-wilson", name: "Sarah Wilson", avatar: "", role: "Designer" },
-  { id: "mike-johnson", name: "Mike Johnson", avatar: "", role: "Product Manager" },
-  { id: "alice-cooper", name: "Alice Cooper", avatar: "", role: "DevOps Engineer" },
-  { id: "bob-smith", name: "Bob Smith", avatar: "", role: "QA Engineer" },
-];
+interface NewTaskModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onTaskCreate: (task: NewTaskData) => void;
+  messageContent?: string;
+  relatedChatId?: string;
+}
 
-const mockChatChannels = [
-  { id: "general", name: "general" },
-  { id: "development", name: "development" },
-  { id: "design", name: "design" },
-  { id: "product", name: "product" },
-  { id: "support", name: "support" },
-];
-
-const priorityOptions = [
-  { value: "low", label: "🟢 Low", description: "Nice to have" },
-  { value: "medium", label: "🟡 Medium", description: "Should be done" },
-  { value: "high", label: "🟠 High", description: "Important" },
-  { value: "urgent", label: "🔴 Urgent", description: "Critical priority" },
-];
-
-const statusOptions = [
-  { value: "todo", label: "📋 To Do", description: "Not started yet" },
-  { value: "in-progress", label: "🔄 In Progress", description: "Currently working" },
-  { value: "review", label: "👀 Review", description: "Pending review" },
-  { value: "done", label: "✅ Done", description: "Completed" },
-];
+const statusOptions: TaskStatus[] = ["todo", "in-progress", "review", "done"];
+const priorityOptions: TaskPriority[] = ["low", "medium", "high", "urgent"];
 
 export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent = "", relatedChatId }: NewTaskModalProps) {
+  const { t, language } = useTranslation();
+  const locale = language === "ja" ? jaLocale : undefined;
+
   const [formData, setFormData] = useState<NewTaskData>({
     title: "",
     description: messageContent,
@@ -73,52 +51,47 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
     assigneeId: undefined,
     dueDate: undefined,
     tags: [],
-    relatedChatId: relatedChatId,
+    relatedChatId,
     estimatedHours: undefined,
   });
 
   const [newTag, setNewTag] = useState("");
-  const [errors, setErrors] = useState<Partial<Record<keyof NewTaskData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof NewTaskData | "tags", string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const availableParticipants = useMemo(
+    () => sampleParticipants.filter((participant) => participant.id !== formData.assigneeId),
+    [formData.assigneeId]
+  );
+
   const validateForm = () => {
-    const newErrors: Partial<Record<keyof NewTaskData, string>> = {};
-    
+    const nextErrors: typeof errors = {};
+
     if (!formData.title.trim()) {
-      newErrors.title = "Title is required";
+      nextErrors.title = t("tasks.create.validation.titleRequired");
     } else if (formData.title.trim().length < 3) {
-      newErrors.title = "Title must be at least 3 characters";
-    }
-    
-    if (formData.description && formData.description.length > 500) {
-      newErrors.description = "Description must be less than 500 characters";
-    }
-    
-    if (formData.estimatedHours && (formData.estimatedHours <= 0 || formData.estimatedHours > 999)) {
-      newErrors.estimatedHours = "Estimated hours must be between 1 and 999";
+      nextErrors.title = t("tasks.create.validation.titleTooShort");
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (formData.description.trim().length > 2000) {
+      nextErrors.description = t("tasks.create.validation.descriptionTooLong");
+    }
+
+    if (formData.estimatedHours !== undefined) {
+      if (formData.estimatedHours <= 0 || formData.estimatedHours > 999) {
+        nextErrors.estimatedHours = t("tasks.create.validation.estimateRange");
+      }
+    }
+
+    if (formData.tags.length > 5) {
+      nextErrors.tags = t("tasks.create.validation.tagLimit");
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-    
-    setIsSubmitting(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      onTaskCreate(formData);
-      handleReset();
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Failed to create task:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleReset = () => {
+  const resetForm = () => {
     setFormData({
       title: "",
       description: messageContent,
@@ -127,123 +100,122 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
       assigneeId: undefined,
       dueDate: undefined,
       tags: [],
-      relatedChatId: relatedChatId,
+      relatedChatId,
       estimatedHours: undefined,
     });
     setNewTag("");
     setErrors({});
   };
 
-  const handleAddTag = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim()) && formData.tags.length < 5) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, newTag.trim()]
-      }));
-      setNewTag("");
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      onTaskCreate(formData);
+      resetForm();
+      onOpenChange(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
+  const handleAddTag = () => {
+    const value = newTag.trim();
+    if (!value || formData.tags.includes(value) || formData.tags.length >= 5) {
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, tags: [...prev.tags, value] }));
+    setNewTag("");
   };
 
-  const selectedAssignee = mockTeamMembers.find(member => member.id === formData.assigneeId);
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(next) => {
+      if (!next) {
+        resetForm();
+      }
+      onOpenChange(next);
+    }}>
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Create New Task
-          </DialogTitle>
-          <DialogDescription>
-            Fill in the details to create a new task. Required fields are marked with *.
-          </DialogDescription>
+          <DialogTitle>{t("tasks.create.title")}</DialogTitle>
+          <DialogDescription>{t("tasks.create.description")}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title" className="flex items-center gap-1">
-              Task Title *
-              {errors.title && <AlertCircle className="h-4 w-4 text-destructive" />}
-            </Label>
+        <div className="grid gap-6 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="task-title">{t("tasks.create.fields.title.label")}</Label>
             <Input
-              id="title"
-              placeholder="Enter a clear, actionable task title..."
+              id="task-title"
+              placeholder={t("tasks.create.fields.title.placeholder")}
               value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className={errors.title ? "border-destructive" : ""}
+              onChange={(event) => setFormData((prev) => ({ ...prev, title: event.target.value }))}
+              maxLength={120}
+              className={errors.title ? "border-destructive" : undefined}
             />
             {errors.title && (
-              <p className="text-sm text-destructive">{errors.title}</p>
+              <p className="text-sm text-destructive flex items-center gap-2">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {errors.title}
+              </p>
             )}
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+          <div className="grid gap-2">
+            <Label htmlFor="task-description">{t("tasks.create.fields.description.label")}</Label>
             <Textarea
-              id="description"
-              placeholder="Provide additional details, requirements, or context..."
+              id="task-description"
+              placeholder={t("tasks.create.fields.description.placeholder")}
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(event) => setFormData((prev) => ({ ...prev, description: event.target.value }))}
               rows={4}
-              className={errors.description ? "border-destructive" : ""}
+              className={errors.description ? "border-destructive" : undefined}
             />
             {errors.description && (
-              <p className="text-sm text-destructive">{errors.description}</p>
+              <p className="text-sm text-destructive flex items-center gap-2">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {errors.description}
+              </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              {formData.description.length}/500 characters
-            </p>
           </div>
 
-          {/* Priority and Status Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select 
-                value={formData.priority} 
-                onValueChange={(value: TaskPriority) => setFormData(prev => ({ ...prev, priority: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorityOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        <span className="text-xs text-muted-foreground">{option.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Initial Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value: TaskStatus) => setFormData(prev => ({ ...prev, status: value }))}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>{t("tasks.create.fields.status.label")}</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value as TaskStatus }))}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col">
-                        <span>{option.label}</span>
-                        <span className="text-xs text-muted-foreground">{option.description}</span>
-                      </div>
+                    <SelectItem key={option} value={option}>
+                      {t(`tasks.create.fields.status.options.${option}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>{t("tasks.create.fields.priority.label")}</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value as TaskPriority }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {priorityOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {t(`tasks.create.fields.priority.options.${option}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -251,139 +223,128 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
             </div>
           </div>
 
-          {/* Assignee and Due Date Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Assignee</Label>
-              <Select 
-                value={formData.assigneeId || ""} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value || undefined }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select team member">
-                    {selectedAssignee ? (
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={selectedAssignee.avatar} />
-                          <AvatarFallback className="text-xs">
-                            {selectedAssignee.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{selectedAssignee.name}</span>
-                      </div>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Unassigned
-                      </span>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">
+          <div className="grid gap-2">
+            <Label>{t("tasks.create.fields.assignee.label")}</Label>
+            <Select
+              value={formData.assigneeId ?? ""}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, assigneeId: value || undefined }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("tasks.create.fields.assignee.placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {t("tasks.create.fields.assignee.unassigned")}
+                  </div>
+                </SelectItem>
+                {sampleParticipants.map((participant) => (
+                  <SelectItem key={participant.id} value={participant.id}>
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      Unassigned
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={participant.avatar} />
+                        <AvatarFallback>{participant.name.slice(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{participant.name}</p>
+                        {participant.roleKey && (
+                          <p className="text-xs text-muted-foreground">{t(participant.roleKey)}</p>
+                        )}
+                      </div>
                     </div>
                   </SelectItem>
-                  {mockTeamMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={member.avatar} />
-                          <AvatarFallback className="text-xs">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span>{member.name}</span>
-                          <span className="text-xs text-muted-foreground">{member.role}</span>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label>Due Date</Label>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>{t("tasks.create.fields.dueDate.label")}</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                  <Button variant="outline" className="justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.dueDate ? format(formData.dueDate, "PPP") : "Select date"}
+                    {formData.dueDate
+                      ? format(formData.dueDate, language === "ja" ? "yyyy年M月d日" : "PPP", { locale })
+                      : t("tasks.create.fields.dueDate.placeholder")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={formData.dueDate}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, dueDate: date }))}
+                    onSelect={(date) => setFormData((prev) => ({ ...prev, dueDate: date ?? undefined }))}
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
 
-          {/* Estimated Hours and Related Chat */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="estimatedHours">Estimated Hours</Label>
+            <div className="grid gap-2">
+              <Label htmlFor="task-estimate">{t("tasks.create.fields.estimate.label")}</Label>
               <Input
-                id="estimatedHours"
+                id="task-estimate"
                 type="number"
-                min="0.5"
+                min="0"
                 max="999"
                 step="0.5"
-                placeholder="e.g., 4.5"
-                value={formData.estimatedHours || ""}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  estimatedHours: e.target.value ? parseFloat(e.target.value) : undefined 
-                }))}
-                className={errors.estimatedHours ? "border-destructive" : ""}
+                placeholder={t("tasks.create.fields.estimate.placeholder")}
+                value={formData.estimatedHours ?? ""}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    estimatedHours: event.target.value ? Number(event.target.value) : undefined,
+                  }))
+                }
+                className={errors.estimatedHours ? "border-destructive" : undefined}
               />
               {errors.estimatedHours && (
-                <p className="text-sm text-destructive">{errors.estimatedHours}</p>
+                <p className="text-sm text-destructive flex items-center gap-2">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {errors.estimatedHours}
+                </p>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Related Chat Channel</Label>
-              <Select 
-                value={formData.relatedChatId || ""} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, relatedChatId: value || undefined }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select channel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No channel</SelectItem>
-                  {mockChatChannels.map((channel) => (
-                    <SelectItem key={channel.id} value={channel.id}>
-                      #{channel.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
+          <div className="grid gap-2">
+            <Label>{t("tasks.create.fields.relatedChat.label")}</Label>
+            <Select
+              value={formData.relatedChatId ?? ""}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, relatedChatId: value || undefined }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("tasks.create.fields.relatedChat.placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">
+                  {t("tasks.create.fields.relatedChat.none")}
+                </SelectItem>
+                {sampleChannels.map((channel) => (
+                  <SelectItem key={channel.id} value={channel.id}>
+                    #{channel.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>{t("tasks.create.fields.tags.label")}</Label>
+            <div className="flex flex-wrap gap-2">
               {formData.tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="flex items-center gap-1">
                   {tag}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => handleRemoveTag(tag)}
+                    className="h-4 w-4 p-0"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, tags: prev.tags.filter((existing) => existing !== tag) }))
+                    }
                   >
                     <X className="h-3 w-3" />
                   </Button>
@@ -392,40 +353,42 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
             </div>
             <div className="flex gap-2">
               <Input
-                placeholder="Add a tag..."
+                placeholder={t("tasks.create.fields.tags.placeholder")}
                 value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+                onChange={(event) => setNewTag(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
                     handleAddTag();
                   }
                 }}
                 disabled={formData.tags.length >= 5}
               />
-              <Button 
-                variant="outline" 
-                onClick={handleAddTag}
-                disabled={!newTag.trim() || formData.tags.includes(newTag.trim()) || formData.tags.length >= 5}
-              >
-                Add
+              <Button variant="outline" onClick={handleAddTag} disabled={!newTag.trim() || formData.tags.length >= 5}>
+                {t("tasks.create.fields.tags.add")}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {formData.tags.length}/5 tags
+              {t("tasks.create.fields.tags.help", { count: formData.tags.length, limit: 5 })}
             </p>
+            {errors.tags && (
+              <p className="text-sm text-destructive flex items-center gap-2">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {errors.tags}
+              </p>
+            )}
           </div>
         </div>
 
         <DialogFooter className="flex gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t("tasks.create.actions.cancel")}
           </Button>
-          <Button onClick={handleReset} variant="ghost" disabled={isSubmitting}>
-            Reset
+          <Button variant="ghost" onClick={resetForm} disabled={isSubmitting}>
+            {t("tasks.create.actions.reset")}
           </Button>
-          <Button onClick={handleSubmit} disabled={!formData.title.trim() || isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Task"}
+          <Button onClick={handleSubmit} disabled={isSubmitting || !formData.title.trim()}>
+            {isSubmitting ? t("tasks.create.actions.submitting") : t("tasks.create.actions.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

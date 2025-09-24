@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Video, Calendar, Clock, Users, MessageSquare, CheckSquare, BookOpen, Copy, Share } from "lucide-react";
 import { format } from "date-fns";
+import type { Locale } from "date-fns";
+import { ja as jaLocale } from "date-fns/locale";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 interface MeetingDetailsModalProps {
   isOpen: boolean;
@@ -18,6 +21,7 @@ interface MeetingDetailsModalProps {
   onCreateTask: (task: TaskFromMeeting) => void;
   onCreateKnowledge: (knowledge: KnowledgeFromMeeting) => void;
   onShareToChat: (content: string) => void;
+  locale?: Locale;
 }
 
 export interface MeetingDetails {
@@ -71,25 +75,27 @@ export interface KnowledgeFromMeeting {
   relatedChatId?: string;
 }
 
-export function MeetingDetailsModal({ 
-  isOpen, 
-  onClose, 
-  meeting, 
-  onCreateTask, 
-  onCreateKnowledge, 
-  onShareToChat 
+export function MeetingDetailsModal({
+  isOpen,
+  onClose,
+  meeting,
+  onCreateTask,
+  onCreateKnowledge,
+  onShareToChat,
+  locale,
 }: MeetingDetailsModalProps) {
+  const { t, language } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
   const [newActionItem, setNewActionItem] = useState("");
   const [newDecision, setNewDecision] = useState("");
   const [meetingNotes, setMeetingNotes] = useState(meeting.notes || "");
+  const derivedLocale = locale ?? (language === "ja" ? jaLocale : undefined);
 
   const handleAddActionItem = () => {
     if (newActionItem.trim()) {
-      // Convert action item to task
       onCreateTask({
         title: newActionItem.trim(),
-        description: `Action item from meeting: ${meeting.title}`,
+        description: t("meetings.details.actionItemTaskDescription", { title: meeting.title }),
         relatedMeetingId: meeting.id,
         relatedChatId: meeting.relatedChatId,
       });
@@ -102,150 +108,153 @@ export function MeetingDetailsModal({
     onShareToChat(summary);
   };
 
+  const formatDate = (date: Date, patternEn: string, patternJa: string) => {
+    const pattern = language === "ja" ? patternJa : patternEn;
+    return format(date, pattern, { locale: derivedLocale });
+  };
+
   const generateMeetingSummary = () => {
-    const formattedDate = format(meeting.startTime, "PPP 'at' p");
+    const formattedDate = formatDate(meeting.startTime, "PPP p", "yyyy年M月d日 HH:mm");
     const duration = Math.round((meeting.endTime.getTime() - meeting.startTime.getTime()) / (1000 * 60));
-    
-    let summary = `## Meeting Summary: ${meeting.title}\n\n`;
-    summary += `📅 **Date:** ${formattedDate}\n`;
-    summary += `⏱️ **Duration:** ${duration} minutes\n`;
-    summary += `👥 **Participants:** ${meeting.participants.map(p => p.name).join(", ")}\n\n`;
-    
+    const participantNames = meeting.participants.map((participant) => participant.name).join(language === "ja" ? "、" : ", ");
+
+    const lines: string[] = [];
+    lines.push(t("meetings.details.summary.heading", { title: meeting.title }));
+    lines.push("");
+    lines.push(t("meetings.details.summary.date", { value: formattedDate }));
+    lines.push(t("meetings.details.summary.duration", { minutes: duration }));
+    lines.push(t("meetings.details.summary.participants", { names: participantNames }));
+    lines.push("");
+
     if (meeting.decisions && meeting.decisions.length > 0) {
-      summary += `## 🎯 Key Decisions\n`;
+      lines.push(t("meetings.details.summary.decisionsHeading"));
       meeting.decisions.forEach((decision, index) => {
-        summary += `${index + 1}. ${decision}\n`;
+        lines.push(t("meetings.details.summary.decisionItem", { index: index + 1, text: decision }));
       });
-      summary += `\n`;
+      lines.push("");
     }
-    
+
     if (meeting.actionItems && meeting.actionItems.length > 0) {
-      summary += `## ✅ Action Items\n`;
+      lines.push(t("meetings.details.summary.actionItemsHeading"));
       meeting.actionItems.forEach((item, index) => {
-        const assignee = item.assignee ? ` (@${item.assignee})` : "";
-        const dueDate = item.dueDate ? ` - Due: ${format(item.dueDate, "MMM d")}` : "";
-        summary += `${index + 1}. ${item.description}${assignee}${dueDate}\n`;
+        const assigneeSuffix = item.assignee ? t("meetings.details.summary.actionAssignee", { assignee: item.assignee }) : "";
+        const dueSuffix = item.dueDate
+          ? t("meetings.details.summary.actionDue", { due: formatDate(item.dueDate, "MMM d", "M月d日") })
+          : "";
+        lines.push(t("meetings.details.summary.actionItem", {
+          index: index + 1,
+          text: item.description,
+          assignee: assigneeSuffix,
+          due: dueSuffix,
+        }));
       });
-      summary += `\n`;
+      lines.push("");
     }
-    
-    if (meetingNotes) {
-      summary += `## 📝 Notes\n${meetingNotes}\n\n`;
-    }
-    
-    return summary;
-  };
 
-  const getPlatformIcon = () => {
-    switch (meeting.platform) {
-      case "zoom": return "🔵";
-      case "meet": return "🟢";
-      case "teams": return "🟣";
-      default: return "🔗";
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (meeting.status) {
-      case "scheduled": return "bg-blue-100 text-blue-800";
-      case "ongoing": return "bg-green-100 text-green-800";
-      case "completed": return "bg-gray-100 text-gray-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
+    return lines.join("\n");
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto" data-testid="meeting-details-modal">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Video className="h-5 w-5" />
-            {meeting.title}
-          </DialogTitle>
-          <DialogDescription className="flex items-center gap-2">
-            <Badge className={getStatusColor()}>
-              {meeting.status.charAt(0).toUpperCase() + meeting.status.slice(1)}
-            </Badge>
-            <span>{format(meeting.startTime, "PPP 'at' p")}</span>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-2xl font-semibold">{meeting.title}</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            {t("meetings.details.subtitle")}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
-            <TabsTrigger value="actions">Actions</TabsTrigger>
-            <TabsTrigger value="recordings">Files</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+          <TabsList className="grid grid-cols-4">
+            <TabsTrigger value="overview">{t("meetings.details.tabs.overview")}</TabsTrigger>
+            <TabsTrigger value="notes">{t("meetings.details.tabs.notes")}</TabsTrigger>
+            <TabsTrigger value="actions">{t("meetings.details.tabs.actions")}</TabsTrigger>
+            <TabsTrigger value="recordings">{t("meetings.details.tabs.recordings")}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4">
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{format(meeting.startTime, "PPP")}</span>
+          <TabsContent value="overview" className="space-y-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">{t("meetings.details.overview.schedule")}</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <Calendar className="inline-block h-3 w-3 mr-1" />
+                    {formatDate(meeting.startTime, "PPP p", "yyyy年M月d日 HH:mm")} — {formatDate(meeting.endTime, "p", "HH:mm")}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{format(meeting.startTime, "p")} - {format(meeting.endTime, "p")}</span>
+                <div>
+                  <Label className="text-sm font-medium">{t("meetings.details.overview.platform")}</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <Video className="inline-block h-3 w-3 mr-1" />
+                    {t(`meetings.details.platform.${meeting.platform}`)}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span>{getPlatformIcon()}</span>
-                  <span className="capitalize">{meeting.platform}</span>
+                <div>
+                  <Label className="text-sm font-medium">{t("meetings.details.overview.duration")}</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <Clock className="inline-block h-3 w-3 mr-1" />
+                    {t("meetings.details.summary.duration", {
+                      minutes: Math.round((meeting.endTime.getTime() - meeting.startTime.getTime()) / (1000 * 60)),
+                    })}
+                  </p>
                 </div>
               </div>
 
-              {meeting.description && (
-                <div>
-                  <Label className="text-sm font-medium">Description</Label>
-                  <p className="text-sm text-muted-foreground mt-1">{meeting.description}</p>
-                </div>
-              )}
+              <div className="space-y-4">
+                {meeting.description && (
+                  <div>
+                    <Label className="text-sm font-medium">{t("meetings.details.overview.description")}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">{meeting.description}</p>
+                  </div>
+                )}
 
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Participants ({meeting.participants.length})</Label>
-                <div className="flex flex-wrap gap-2">
-                  {meeting.participants.map((participant) => (
-                    <div key={participant.id} className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={participant.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${participant.name}`} />
-                        <AvatarFallback className="text-xs">
-                          {participant.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{participant.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {meeting.platformUrl && (
                 <div>
-                  <Label className="text-sm font-medium">Meeting Link</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input value={meeting.platformUrl} readOnly className="text-sm" />
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => navigator.clipboard.writeText(meeting.platformUrl!)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                  <Label className="text-sm font-medium mb-2 block">
+                    {t("meetings.details.overview.participants", { count: meeting.participants.length })}
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {meeting.participants.map((participant) => (
+                      <div key={participant.id} className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={participant.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${participant.name}`} />
+                          <AvatarFallback className="text-xs">
+                            {participant.name.split(" ").map((segment) => segment[0]).join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{participant.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
+
+                {meeting.platformUrl && (
+                  <div>
+                    <Label className="text-sm font-medium">{t("meetings.details.overview.link")}</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input value={meeting.platformUrl} readOnly className="text-sm" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigator.clipboard.writeText(meeting.platformUrl!)}
+                        aria-label={t("meetings.details.overview.copyLink")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="notes" className="space-y-4">
+          <TabsContent value="notes" className="space-y-4 mt-6">
             <div>
-              <Label htmlFor="meeting-notes" className="text-sm font-medium">Meeting Notes</Label>
+              <Label htmlFor="meeting-notes" className="text-sm font-medium">{t("meetings.details.notes.title")}</Label>
               <Textarea
                 id="meeting-notes"
-                placeholder="Add your meeting notes here..."
+                placeholder={t("meetings.details.notes.placeholder")}
                 value={meetingNotes}
-                onChange={(e) => setMeetingNotes(e.target.value)}
+                onChange={(event) => setMeetingNotes(event.target.value)}
                 rows={8}
                 className="mt-2"
                 data-testid="meeting-notes-textarea"
@@ -253,7 +262,7 @@ export function MeetingDetailsModal({
             </div>
 
             <div>
-              <Label className="text-sm font-medium">Key Decisions</Label>
+              <Label className="text-sm font-medium">{t("meetings.details.decisions.title")}</Label>
               <div className="space-y-2 mt-2">
                 {meeting.decisions?.map((decision, index) => (
                   <div key={index} className="flex items-start gap-2 p-2 bg-secondary rounded">
@@ -263,91 +272,100 @@ export function MeetingDetailsModal({
                 ))}
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Add a decision..."
+                    placeholder={t("meetings.details.decisions.placeholder")}
                     value={newDecision}
-                    onChange={(e) => setNewDecision(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && newDecision.trim()) {
-                        // Add decision logic here
+                    onChange={(event) => setNewDecision(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && newDecision.trim()) {
                         setNewDecision("");
                       }
                     }}
                   />
-                  <Button size="sm" variant="outline">Add</Button>
+                  <Button size="sm" variant="outline">
+                    {t("meetings.details.decisions.add")}
+                  </Button>
                 </div>
               </div>
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button onClick={() => onCreateKnowledge({
-                title: `Meeting Notes: ${meeting.title}`,
-                content: meetingNotes,
-                category: "Meeting Notes",
-                tags: ["meeting", "notes"],
-                relatedMeetingId: meeting.id,
-                relatedChatId: meeting.relatedChatId,
-              })}>
+              <Button
+                onClick={() =>
+                  onCreateKnowledge({
+                    title: t("meetings.details.notes.knowledgeTitle", { title: meeting.title }),
+                    content: meetingNotes,
+                    category: t("meetings.details.notes.category"),
+                    tags: ["meeting", "notes"],
+                    relatedMeetingId: meeting.id,
+                    relatedChatId: meeting.relatedChatId,
+                  })
+                }
+              >
                 <BookOpen className="h-4 w-4 mr-2" />
-                Save as Knowledge
+                {t("meetings.details.notes.saveKnowledge")}
               </Button>
               <Button variant="outline" onClick={handleShareSummary}>
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Share Summary to Chat
+                {t("meetings.details.notes.shareSummary")}
               </Button>
             </div>
           </TabsContent>
 
-          <TabsContent value="actions" className="space-y-4">
+          <TabsContent value="actions" className="space-y-4 mt-6">
             <div>
-              <Label className="text-sm font-medium">Action Items</Label>
+              <Label className="text-sm font-medium">{t("meetings.details.actions.title")}</Label>
               <div className="space-y-2 mt-2">
                 {meeting.actionItems?.map((item) => (
                   <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={item.completed}
                       className="rounded"
-                      onChange={() => {/* Handle toggle completion */}}
+                      onChange={() => {}}
                     />
                     <div className="flex-1">
-                      <div className={`text-sm ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
+                      <div className={`text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>
                         {item.description}
                       </div>
                       {item.assignee && (
                         <div className="text-xs text-muted-foreground">
-                          Assigned to: {item.assignee}
+                          {t("meetings.details.actions.assignedTo", { assignee: item.assignee })}
                         </div>
                       )}
                       {item.dueDate && (
                         <div className="text-xs text-muted-foreground">
-                          Due: {format(item.dueDate, "MMM d, yyyy")}
+                          {t("meetings.details.actions.due", {
+                            date: formatDate(item.dueDate, "MMM d, yyyy", "yyyy年M月d日"),
+                          })}
                         </div>
                       )}
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onCreateTask({
-                        title: item.description,
-                        description: `Action item from meeting: ${meeting.title}`,
-                        assigneeId: item.assignee,
-                        dueDate: item.dueDate,
-                        relatedMeetingId: meeting.id,
-                        relatedChatId: meeting.relatedChatId,
-                      })}
+                      onClick={() =>
+                        onCreateTask({
+                          title: item.description,
+                          description: t("meetings.details.actionItemTaskDescription", { title: meeting.title }),
+                          assigneeId: item.assignee,
+                          dueDate: item.dueDate,
+                          relatedMeetingId: meeting.id,
+                          relatedChatId: meeting.relatedChatId,
+                        })
+                      }
                     >
                       <CheckSquare className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
-                
+
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Add new action item..."
+                    placeholder={t("meetings.details.actions.placeholder")}
                     value={newActionItem}
-                    onChange={(e) => setNewActionItem(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
+                    onChange={(event) => setNewActionItem(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
                         handleAddActionItem();
                       }
                     }}
@@ -355,16 +373,16 @@ export function MeetingDetailsModal({
                   />
                   <Button onClick={handleAddActionItem} size="sm">
                     <CheckSquare className="h-4 w-4 mr-2" />
-                    Create Task
+                    {t("meetings.details.actions.createTask")}
                   </Button>
                 </div>
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="recordings" className="space-y-4">
+          <TabsContent value="recordings" className="space-y-4 mt-6">
             <div>
-              <Label className="text-sm font-medium">Recordings & Files</Label>
+              <Label className="text-sm font-medium">{t("meetings.details.recordings.title")}</Label>
               <div className="space-y-2 mt-2">
                 {meeting.recordings && meeting.recordings.length > 0 ? (
                   meeting.recordings.map((recording) => (
@@ -373,14 +391,16 @@ export function MeetingDetailsModal({
                         <div className="text-sm font-medium">{recording.name}</div>
                         {recording.duration && (
                           <div className="text-xs text-muted-foreground">
-                            Duration: {Math.round(recording.duration / 60)} minutes
+                            {t("meetings.details.recordings.duration", {
+                              minutes: Math.round(recording.duration / 60),
+                            })}
                           </div>
                         )}
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" asChild>
                           <a href={recording.url} target="_blank" rel="noopener noreferrer">
-                            View
+                            {t("meetings.details.recordings.view")}
                           </a>
                         </Button>
                         <Button size="sm" variant="outline">
@@ -390,20 +410,22 @@ export function MeetingDetailsModal({
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">No recordings available</p>
+                  <p className="text-sm text-muted-foreground">{t("meetings.details.recordings.empty")}</p>
                 )}
               </div>
             </div>
           </TabsContent>
         </Tabs>
 
+        <Separator className="my-4" />
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Close
+            {t("meetings.details.footer.close")}
           </Button>
           {meeting.status === "ongoing" && (
             <Button>
-              End Meeting
+              {t("meetings.details.footer.endMeeting")}
             </Button>
           )}
         </DialogFooter>

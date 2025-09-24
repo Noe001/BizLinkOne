@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Video, Clock, Users, X, Plus } from "lucide-react";
-import { format, addMinutes } from "date-fns";
+import { format } from "date-fns";
+import type { Locale } from "date-fns";
+import { ja as jaLocale } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/LanguageContext";
+import { sampleParticipants, sampleChannels } from "@/data/sampleWorkspace";
 
 interface CreateMeetingModalProps {
   isOpen: boolean;
@@ -35,42 +39,38 @@ export interface CreateMeetingData {
   generateNotes: boolean;
 }
 
-// Mock participants - in real app, this would come from API
-const mockParticipants = [
-  { id: "john-doe", name: "John Doe", email: "john@company.com" },
-  { id: "sarah-wilson", name: "Sarah Wilson", email: "sarah@company.com" },
-  { id: "mike-johnson", name: "Mike Johnson", email: "mike@company.com" },
-  { id: "alice-cooper", name: "Alice Cooper", email: "alice@company.com" },
-  { id: "bob-smith", name: "Bob Smith", email: "bob@company.com" },
-];
-
-// Mock channels for related chat
-const mockChannels = [
-  { id: "general", name: "general" },
-  { id: "development", name: "development" },
-  { id: "design", name: "design" },
-  { id: "product", name: "product" },
-];
+const durationOptions = [15, 30, 60, 90, 120] as const;
+const platformOptions = ["zoom", "meet", "teams", "other"] as const;
+const recurringOptions = ["daily", "weekly", "monthly"] as const;
 
 export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateMeetingModalProps) {
+  const { t, language } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>();
   const [startTime, setStartTime] = useState("09:00");
-  const [duration, setDuration] = useState(60);
-  const [platform, setPlatform] = useState<"zoom" | "meet" | "teams" | "other">("zoom");
+  const [duration, setDuration] = useState<number>(60);
+  const [platform, setPlatform] = useState<CreateMeetingData["platform"]>("zoom");
   const [platformUrl, setPlatformUrl] = useState("");
   const [participants, setParticipants] = useState<string[]>([]);
   const [relatedChatId, setRelatedChatId] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringPattern, setRecurringPattern] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [recurringPattern, setRecurringPattern] = useState<CreateMeetingData["recurringPattern"]>("weekly");
   const [sendReminders, setSendReminders] = useState(true);
   const [generateNotes, setGenerateNotes] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title.trim() || !startDate) return;
+  const derivedLocale: Locale | undefined = language === "ja" ? jaLocale : undefined;
+
+  const availableParticipants = useMemo(
+    () => sampleParticipants.filter((participant) => !participants.includes(participant.id)),
+    [participants]
+  );
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!title.trim() || !startDate) {
+      return;
+    }
 
     onCreateMeeting({
       title: title.trim(),
@@ -88,7 +88,6 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
       generateNotes,
     });
 
-    // Reset form
     resetForm();
     onClose();
   };
@@ -116,12 +115,16 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
 
   const addParticipant = (participantId: string) => {
     if (!participants.includes(participantId)) {
-      setParticipants([...participants, participantId]);
+      setParticipants((prev) => [...prev, participantId]);
     }
   };
 
   const removeParticipant = (participantId: string) => {
-    setParticipants(participants.filter(id => id !== participantId));
+    setParticipants((prev) => prev.filter((id) => id !== participantId));
+  };
+
+  const formatDateLabel = (date: Date) => {
+    return format(date, language === "ja" ? "yyyy年M月d日" : "PPP", { locale: derivedLocale });
   };
 
   return (
@@ -130,33 +133,33 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="h-5 w-5" />
-            Schedule New Meeting
+            {t("meetings.create.title")}
           </DialogTitle>
           <DialogDescription>
-            Create a new meeting and automatically notify participants.
+            {t("meetings.create.description")}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="meeting-title">Title *</Label>
+            <Label htmlFor="meeting-title">{t("meetings.create.form.titleLabel")}</Label>
             <Input
               id="meeting-title"
-              placeholder="Enter meeting title..."
+              placeholder={t("meetings.create.form.titlePlaceholder")}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(event) => setTitle(event.target.value)}
               required
               data-testid="meeting-title-input"
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="meeting-description">Description</Label>
+            <Label htmlFor="meeting-description">{t("meetings.create.form.descriptionLabel")}</Label>
             <Textarea
               id="meeting-description"
-              placeholder="Meeting agenda and details..."
+              placeholder={t("meetings.create.form.descriptionPlaceholder")}
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(event) => setDescription(event.target.value)}
               rows={3}
               data-testid="meeting-description-input"
             />
@@ -164,7 +167,7 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
 
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Date *</Label>
+              <Label>{t("meetings.create.form.dateLabel")}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -176,7 +179,7 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
                     data-testid="meeting-date-button"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : "Pick a date"}
+                    {startDate ? formatDateLabel(startDate) : t("meetings.create.form.datePlaceholder")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -185,18 +188,19 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
                     selected={startDate}
                     onSelect={setStartDate}
                     initialFocus
+                    locale={derivedLocale}
                   />
                 </PopoverContent>
               </Popover>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="meeting-time">Start Time *</Label>
+              <Label htmlFor="meeting-time">{t("meetings.create.form.timeLabel")}</Label>
               <Input
                 id="meeting-time"
                 type="time"
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                onChange={(event) => setStartTime(event.target.value)}
                 required
                 data-testid="meeting-time-input"
               />
@@ -205,32 +209,33 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
 
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="meeting-duration">Duration (minutes)</Label>
-              <Select value={duration.toString()} onValueChange={(value) => setDuration(parseInt(value))}>
+              <Label htmlFor="meeting-duration">{t("meetings.create.form.durationLabel")}</Label>
+              <Select value={duration.toString()} onValueChange={(value) => setDuration(parseInt(value, 10))}>
                 <SelectTrigger data-testid="meeting-duration-select">
-                  <SelectValue placeholder="Select duration" />
+                  <SelectValue placeholder={t("meetings.create.form.durationPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="15">15 minutes</SelectItem>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="60">1 hour</SelectItem>
-                  <SelectItem value="90">1.5 hours</SelectItem>
-                  <SelectItem value="120">2 hours</SelectItem>
+                  {durationOptions.map((option) => (
+                    <SelectItem key={option} value={option.toString()}>
+                      {t(`meetings.create.form.durationOptions.${option}`)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="meeting-platform">Platform</Label>
-              <Select value={platform} onValueChange={(value) => setPlatform(value as any)}>
+              <Label htmlFor="meeting-platform">{t("meetings.create.form.platformLabel")}</Label>
+              <Select value={platform} onValueChange={(value) => setPlatform(value as CreateMeetingData["platform"]) }>
                 <SelectTrigger data-testid="meeting-platform-select">
-                  <SelectValue placeholder="Select platform" />
+                  <SelectValue placeholder={t("meetings.create.form.platformPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="zoom">🔵 Zoom</SelectItem>
-                  <SelectItem value="meet">🟢 Google Meet</SelectItem>
-                  <SelectItem value="teams">🟣 Microsoft Teams</SelectItem>
-                  <SelectItem value="other">🔗 Other</SelectItem>
+                  {platformOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {t(`meetings.details.platform.${option}`)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -238,39 +243,39 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
 
           {platform === "other" && (
             <div className="grid gap-2">
-              <Label htmlFor="platform-url">Meeting URL</Label>
+              <Label htmlFor="platform-url">{t("meetings.create.form.platformUrlLabel")}</Label>
               <Input
                 id="platform-url"
-                placeholder="https://..."
+                placeholder={t("meetings.create.form.platformUrlPlaceholder")}
                 value={platformUrl}
-                onChange={(e) => setPlatformUrl(e.target.value)}
+                onChange={(event) => setPlatformUrl(event.target.value)}
                 data-testid="platform-url-input"
               />
             </div>
           )}
 
           <div className="grid gap-2">
-            <Label>Participants</Label>
-            
-            {/* Selected participants */}
+            <Label>{t("meetings.create.form.participantsLabel")}</Label>
+
             {participants.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {participants.map((participantId) => {
-                  const participant = mockParticipants.find(p => p.id === participantId);
+                  const participant = sampleParticipants.find((item) => item.id === participantId);
                   return (
-                    <Badge 
-                      key={participantId} 
-                      variant="secondary" 
+                    <Badge
+                      key={participantId}
+                      variant="secondary"
                       className="text-xs"
                       data-testid={`participant-${participantId}`}
                     >
-                      {participant?.name}
+                      {participant?.name ?? participantId}
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         className="h-auto p-0 ml-1 hover:bg-transparent"
                         onClick={() => removeParticipant(participantId)}
+                        aria-label={t("meetings.create.form.removeParticipant", { name: participant?.name ?? participantId })}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -280,14 +285,15 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
               </div>
             )}
 
-            {/* Available participants */}
             <div className="border rounded-lg p-3 max-h-32 overflow-y-auto">
               <div className="grid gap-2">
-                {mockParticipants.filter(p => !participants.includes(p.id)).map((participant) => (
+                {availableParticipants.map((participant) => (
                   <div key={participant.id} className="flex items-center justify-between">
                     <div className="text-sm">
                       <div className="font-medium">{participant.name}</div>
-                      <div className="text-muted-foreground text-xs">{participant.email}</div>
+                      {participant.email && (
+                        <div className="text-muted-foreground text-xs">{participant.email}</div>
+                      )}
                     </div>
                     <Button
                       type="button"
@@ -295,24 +301,30 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
                       variant="outline"
                       onClick={() => addParticipant(participant.id)}
                       data-testid={`add-participant-${participant.id}`}
+                      aria-label={t("meetings.create.form.addParticipant", { name: participant.name })}
                     >
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
+                {availableParticipants.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("meetings.create.form.participantsAllAdded")}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="related-chat">Related Chat Channel</Label>
+            <Label htmlFor="related-chat">{t("meetings.create.form.channelLabel")}</Label>
             <Select value={relatedChatId} onValueChange={setRelatedChatId}>
               <SelectTrigger data-testid="related-chat-select">
-                <SelectValue placeholder="Select channel (optional)" />
+                <SelectValue placeholder={t("meetings.create.form.channelPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No channel</SelectItem>
-                {mockChannels.map((channel) => (
+                <SelectItem value="">{t("meetings.create.form.channelNone")}</SelectItem>
+                {sampleChannels.map((channel) => (
                   <SelectItem key={channel.id} value={channel.id}>
                     #{channel.name}
                   </SelectItem>
@@ -326,23 +338,25 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
               <Checkbox
                 id="recurring"
                 checked={isRecurring}
-                onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+                onCheckedChange={(checked) => setIsRecurring(Boolean(checked))}
                 data-testid="recurring-checkbox"
               />
-              <Label htmlFor="recurring">Recurring meeting</Label>
+              <Label htmlFor="recurring">{t("meetings.create.form.recurringLabel")}</Label>
             </div>
 
             {isRecurring && (
               <div className="ml-6 grid gap-2">
-                <Label htmlFor="recurring-pattern">Repeat pattern</Label>
-                <Select value={recurringPattern} onValueChange={(value) => setRecurringPattern(value as any)}>
+                <Label htmlFor="recurring-pattern">{t("meetings.create.form.recurringPatternLabel")}</Label>
+                <Select value={recurringPattern ?? "weekly"} onValueChange={(value) => setRecurringPattern(value as CreateMeetingData["recurringPattern"])}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    {recurringOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {t(`meetings.create.form.recurringOptions.${option}`)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -352,29 +366,29 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
               <Checkbox
                 id="reminders"
                 checked={sendReminders}
-                onCheckedChange={(checked) => setSendReminders(checked as boolean)}
+                onCheckedChange={(checked) => setSendReminders(Boolean(checked))}
                 data-testid="reminders-checkbox"
               />
-              <Label htmlFor="reminders">Send reminder notifications</Label>
+              <Label htmlFor="reminders">{t("meetings.create.form.remindersLabel")}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="generate-notes"
                 checked={generateNotes}
-                onCheckedChange={(checked) => setGenerateNotes(checked as boolean)}
+                onCheckedChange={(checked) => setGenerateNotes(Boolean(checked))}
                 data-testid="generate-notes-checkbox"
               />
-              <Label htmlFor="generate-notes">Auto-generate meeting notes template</Label>
+              <Label htmlFor="generate-notes">{t("meetings.create.form.notesLabel")}</Label>
             </div>
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t("meetings.create.actions.cancel")}
             </Button>
             <Button type="submit" disabled={!title.trim() || !startDate} data-testid="create-meeting-button">
-              Schedule Meeting
+              {t("meetings.create.actions.submit")}
             </Button>
           </DialogFooter>
         </form>
