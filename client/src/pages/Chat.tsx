@@ -13,6 +13,7 @@ import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
 import { useState, useEffect, useRef } from "react";
+import type { MessageModalContext } from "@/types";
 
 interface ChannelInfo {
   name: string;
@@ -67,13 +68,6 @@ const mockMessagesWithThreads = [
 
 type MockMessage = (typeof mockMessagesWithThreads)[number];
 type DisplayMessage = MockMessage & { isFirstUnread?: boolean };
-
-interface MessageModalContext {
-  messageId: string;
-  content: string;
-  authorName: string;
-  channelId?: string;
-}
 
 // Mock channel info until we have channels API
 const getChannelInfo = (channelId: string): ChannelInfo => {

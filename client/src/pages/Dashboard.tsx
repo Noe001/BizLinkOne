@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ChatMessage as ChatMessageType, Task, KnowledgeArticle, Meeting } from "@shared/schema";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useState } from "react";
+import type { MessageModalContext } from "@/types";
 import { dashboardSummary, sampleProjects } from "@/data/projects";
 
 interface DashboardStats {
@@ -30,13 +31,6 @@ interface DashboardStats {
   pendingTasks: number;
   knowledgeArticles: number;
   upcomingMeetings: number;
-}
-
-interface MessageModalContext {
-  messageId: string;
-  content: string;
-  authorName: string;
-  channelId?: string;
 }
 
 export default function Dashboard() {
