@@ -59,7 +59,7 @@ export function ChatInput({
         return;
       }
 
-      console.log(`Sending message: ${message}`);
+      console.log(`Sending message: ${trimmedMessage}`);
       onSendMessage(trimmedMessage);
       setMessage("");
     }

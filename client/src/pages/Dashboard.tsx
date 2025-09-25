@@ -22,6 +22,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { ChatMessage as ChatMessageType, Task, KnowledgeArticle, Meeting } from "@shared/schema";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import type { MessageModalContext } from "@/types";
 import { dashboardSummary, sampleProjects } from "@/data/projects";
@@ -36,6 +37,8 @@ interface DashboardStats {
 export default function Dashboard() {
   const { t } = useTranslation();
   const { addNotification } = useNotifications();
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? null;
   const [taskModalContext, setTaskModalContext] = useState<MessageModalContext | null>(null);
   const [knowledgeModalContext, setKnowledgeModalContext] = useState<MessageModalContext | null>(null);
 
@@ -289,6 +292,7 @@ export default function Dashboard() {
                     key={message.id}
                     {...message}
                     channelId={message.channelId || undefined}
+                    isOwn={currentUserId === message.userId}
                     onRequestTaskCreation={handleRequestTaskCreation}
                     onRequestKnowledgeCreation={handleRequestKnowledgeCreation}
                     onReply={handleReply}

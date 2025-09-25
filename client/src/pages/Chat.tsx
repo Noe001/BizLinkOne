@@ -14,6 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
 import { useState, useEffect, useRef } from "react";
 import type { MessageModalContext } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ChannelInfo {
   name: string;
@@ -26,7 +27,7 @@ interface ChannelInfo {
 const mockMessagesWithThreads = [
   {
     id: "msg-1",
-    userId: "user-1",
+    userId: "user-2",
     userName: "Alice Johnson",
     content: "Hey team, I've been working on the new authentication system. What do you think about implementing OAuth 2.0?",
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
@@ -37,7 +38,7 @@ const mockMessagesWithThreads = [
   },
   {
     id: "msg-2",
-    userId: "current-user",
+    userId: "user-1",
     userName: "You",
     content: "That sounds great! OAuth 2.0 would definitely improve our security posture. Have you considered which provider to use?",
     timestamp: new Date(Date.now() - 1000 * 60 * 60),
@@ -81,6 +82,10 @@ const getChannelInfo = (channelId: string): ChannelInfo => {
 };
 
 export default function Chat() {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? "user-1";
+  const currentUserName = user?.name ?? "You";
+
   // Support both channel and DM routes
   const [matchType, paramsType] = useRoute("/chat/:type/:id");
   const [matchChannel, paramsChannel] = useRoute("/chat/channel/:channelId");
@@ -149,8 +154,8 @@ export default function Chat() {
     mutationFn: async (content: string) => {
       return apiRequest("POST", "/api/messages", {
         content,
-        userId: "current-user",
-        userName: "You",
+        userId: currentUserId,
+        userName: currentUserName,
         channelId,
         channelType: "channel"
       });
@@ -254,8 +259,8 @@ export default function Chat() {
         },
         {
           id: `thread-${messageId}-2`,
-          userId: "current-user",
-          userName: "You",
+          userId: currentUserId,
+          userName: currentUserName,
           content: "Auth0 looks promising. What about the pricing?",
           timestamp: new Date(Date.now() - 1000 * 60 * 15),
           isOwn: true,
@@ -286,8 +291,8 @@ export default function Chat() {
     // Mock sending thread reply - in real app, this would be an API call
     const newReply = {
       id: `thread-${selectedThread}-${Date.now()}`,
-      userId: "current-user",
-      userName: "You",
+      userId: currentUserId,
+      userName: currentUserName,
       content,
       timestamp: new Date(),
       isOwn: true,
@@ -403,7 +408,7 @@ export default function Chat() {
                   key={message.id}
                   {...message}
                   channelId={channelId}
-                  isOwn={message.userId === "current-user"}
+                  isOwn={message.userId === currentUserId}
                   onRequestTaskCreation={handleRequestTaskCreation}
                   onRequestKnowledgeCreation={handleRequestKnowledgeCreation}
                   onReply={handleReply}
