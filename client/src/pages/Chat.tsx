@@ -6,6 +6,8 @@ import { Search, Hash, Users, Phone, Video, Settings, MessageSquare } from "luci
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatThread } from "@/components/ChatThread";
+import { NewTaskModal, type NewTaskData } from "@/components/NewTaskModal";
+import { CreateKnowledgeModal, type CreateKnowledgeData } from "@/components/CreateKnowledgeModal";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -63,6 +65,16 @@ const mockMessagesWithThreads = [
   },
 ];
 
+type MockMessage = (typeof mockMessagesWithThreads)[number];
+type DisplayMessage = MockMessage & { isFirstUnread?: boolean };
+
+interface MessageModalContext {
+  messageId: string;
+  content: string;
+  authorName: string;
+  channelId?: string;
+}
+
 // Mock channel info until we have channels API
 const getChannelInfo = (channelId: string): ChannelInfo => {
   const channels: Record<string, ChannelInfo> = {
@@ -91,6 +103,9 @@ export default function Chat() {
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [threadMessages, setThreadMessages] = useState<any[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
+
+  const [taskModalContext, setTaskModalContext] = useState<MessageModalContext | null>(null);
+  const [knowledgeModalContext, setKnowledgeModalContext] = useState<MessageModalContext | null>(null);
   
   // Close thread when switching channels
   useEffect(() => {
@@ -119,7 +134,7 @@ export default function Chat() {
   const firstUnreadIndex = filteredMessages.findIndex(message => message.isUnread);
   
   // Mark the first unread message
-  const messagesWithUnreadMarker = filteredMessages.map((message, index) => ({
+  const messagesWithUnreadMarker: DisplayMessage[] = filteredMessages.map((message, index) => ({
     ...message,
     isFirstUnread: message.isUnread && index === firstUnreadIndex
   }));
@@ -160,12 +175,58 @@ export default function Chat() {
     ? getChannelInfo(channelId as string) 
     : { name: contextId, description: "Direct message", memberCount: 2, isChannel: false };
 
-  const handleConvertToTask = (messageId: string) => {
-    console.log(`Converting message ${messageId} to task`);
+  const handleRequestTaskCreation = (messageId: string) => {
+    const message = messagesWithUnreadMarker.find(item => item.id === messageId);
+    if (!message) {
+      console.warn(`Unable to find message ${messageId} for task conversion.`);
+      return;
+    }
+
+    setTaskModalContext({
+      messageId,
+      content: message.content,
+      authorName: message.userName,
+      channelId: message.channelId,
+    });
   };
 
-  const handleConvertToKnowledge = (messageId: string) => {
-    console.log(`Converting message ${messageId} to knowledge`);
+  const handleTaskCreate = (taskData: NewTaskData) => {
+    if (!taskModalContext) {
+      return;
+    }
+
+    console.log("Creating task from message", {
+      messageId: taskModalContext.messageId,
+      taskData,
+    });
+    setTaskModalContext(null);
+  };
+
+  const handleRequestKnowledgeCreation = (messageId: string) => {
+    const message = messagesWithUnreadMarker.find(item => item.id === messageId);
+    if (!message) {
+      console.warn(`Unable to find message ${messageId} for knowledge conversion.`);
+      return;
+    }
+
+    setKnowledgeModalContext({
+      messageId,
+      content: message.content,
+      authorName: message.userName,
+      channelId: message.channelId,
+    });
+  };
+
+  const handleKnowledgeCreate = (knowledgeData: CreateKnowledgeData) => {
+    if (!knowledgeModalContext) {
+      return;
+    }
+
+    console.log("Creating knowledge article from message", {
+      messageId: knowledgeModalContext.messageId,
+      knowledgeData,
+    });
+    setKnowledgeModalContext(null);
   };
 
   const handleReply = (messageId: string) => {
@@ -349,8 +410,8 @@ export default function Chat() {
                   {...message}
                   channelId={channelId}
                   isOwn={message.userId === "current-user"}
-                  onConvertToTask={handleConvertToTask}
-                  onConvertToKnowledge={handleConvertToKnowledge}
+                  onRequestTaskCreation={handleRequestTaskCreation}
+                  onRequestKnowledgeCreation={handleRequestKnowledgeCreation}
                   onReply={handleReply}
                   onViewThread={handleViewThread}
                 />
@@ -366,6 +427,27 @@ export default function Chat() {
           placeholder={`Message ${isChannelContext ? '#' + channelInfo.name : '@' + channelInfo.name}`}
           disabled={sendMessageMutation.isPending}
           onShareKnowledge={handleShareKnowledge}
+        />
+
+        <NewTaskModal
+          open={Boolean(taskModalContext)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTaskModalContext(null);
+            }
+          }}
+          onTaskCreate={handleTaskCreate}
+          messageContent={taskModalContext?.content}
+          relatedChatId={taskModalContext?.channelId}
+        />
+
+        <CreateKnowledgeModal
+          isOpen={Boolean(knowledgeModalContext)}
+          onClose={() => setKnowledgeModalContext(null)}
+          onCreateKnowledge={handleKnowledgeCreate}
+          messageContent={knowledgeModalContext?.content}
+          messageAuthor={knowledgeModalContext?.authorName}
+          relatedChatId={knowledgeModalContext?.channelId}
         />
       </div>
 

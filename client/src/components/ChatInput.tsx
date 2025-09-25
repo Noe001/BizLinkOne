@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Paperclip, Smile, Slash, AtSign, Bold, Italic, Code, Quote, BookOpen, Search } from "lucide-react";
-import { KnowledgeSearchModal } from "./KnowledgeSearchModal";
+import { KnowledgeSearchModal, KnowledgeSearchArticle } from "./KnowledgeSearchModal";
+import { KNOWLEDGE_ROUTE_BASE, KNOWLEDGE_COMMANDS, SLASH_COMMANDS, type KnowledgeCommand } from "@/constants/commands";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -36,8 +37,8 @@ export function ChatInput({
     }
   };
 
-  const handleKnowledgeSelect = (knowledge: any) => {
-    const knowledgeMessage = `📚 **${knowledge.title}**\n\n${knowledge.summary}\n\n[View full article](/knowledge/${knowledge.id})`;
+  const handleKnowledgeSelect = (knowledge: KnowledgeSearchArticle) => {
+    const knowledgeMessage = `📚 **${knowledge.title}**\n\n${knowledge.summary}\n\n[View full article](${KNOWLEDGE_ROUTE_BASE}/${knowledge.id})`;
     onSendMessage(knowledgeMessage);
     onShareKnowledge?.(knowledge.id, knowledge.title, knowledge.summary);
   };
@@ -49,16 +50,17 @@ export function ChatInput({
   };
 
   const handleSend = () => {
-    if (message.trim() && !disabled) {
+    const trimmedMessage = message.trim();
+    if (trimmedMessage && !disabled) {
       // Handle special commands
-      if (message.trim() === "/knowledge" || message.trim() === "/kb") {
+      if (KNOWLEDGE_COMMANDS.includes(trimmedMessage as KnowledgeCommand)) {
         setShowKnowledgeModal(true);
         setMessage("");
         return;
       }
-      
+
       console.log(`Sending message: ${message}`);
-      onSendMessage(message.trim());
+      onSendMessage(trimmedMessage);
       setMessage("");
     }
   };
@@ -142,21 +144,21 @@ export function ChatInput({
                 <div className="p-2 space-y-1">
                   <div 
                     className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer"
-                    onClick={() => insertCommand("/knowledge")}
+                    onClick={() => insertCommand(SLASH_COMMANDS.KNOWLEDGE_SEARCH)}
                   >
                     <BookOpen className="h-4 w-4" />
                     <div>
-                      <div className="font-medium">/knowledge</div>
+                      <div className="font-medium">{SLASH_COMMANDS.KNOWLEDGE_SEARCH}</div>
                       <div className="text-xs text-muted-foreground">Search knowledge base</div>
                     </div>
                   </div>
                   <div 
                     className="flex items-center gap-2 p-2 hover:bg-accent rounded cursor-pointer"
-                    onClick={() => insertCommand("/kb")}
+                    onClick={() => insertCommand(SLASH_COMMANDS.KNOWLEDGE_QUICK_SEARCH)}
                   >
                     <Search className="h-4 w-4" />
                     <div>
-                      <div className="font-medium">/kb</div>
+                      <div className="font-medium">{SLASH_COMMANDS.KNOWLEDGE_QUICK_SEARCH}</div>
                       <div className="text-xs text-muted-foreground">Quick knowledge search</div>
                     </div>
                   </div>

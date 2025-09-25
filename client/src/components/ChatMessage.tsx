@@ -1,11 +1,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare, BookOpen, MoreHorizontal, Reply, MessageSquare } from "lucide-react";
+import { CheckSquare, BookOpen, MoreHorizontal, Reply } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
-import { NewTaskModal, NewTaskData } from "./NewTaskModal";
-import { CreateKnowledgeModal, CreateKnowledgeData } from "./CreateKnowledgeModal";
 
 interface ChatMessageProps {
   id: string;
@@ -23,8 +20,8 @@ interface ChatMessageProps {
   lastThreadReply?: Date;
   canConvertToTask?: boolean;
   canConvertToKnowledge?: boolean;
-  onConvertToTask?: (messageId: string) => void;
-  onConvertToKnowledge?: (messageId: string) => void;
+  onRequestTaskCreation?: (messageId: string) => void;
+  onRequestKnowledgeCreation?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onViewThread?: (messageId: string) => void;
 }
@@ -32,7 +29,6 @@ interface ChatMessageProps {
 export function ChatMessage(props: ChatMessageProps) {
   const {
     id,
-    userId,
     userName,
     userAvatar,
     content,
@@ -40,38 +36,21 @@ export function ChatMessage(props: ChatMessageProps) {
     isOwn = false,
     isUnread = false,
     isFirstUnread = false,
-    threadId,
     threadCount = 0,
-    lastThreadReply,
     canConvertToTask = true,
     canConvertToKnowledge = true,
-    onConvertToTask,
-    onConvertToKnowledge,
+    onRequestTaskCreation,
+    onRequestKnowledgeCreation,
     onReply,
     onViewThread,
   } = props;
 
-  const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
-
   const handleConvertToTask = () => {
-    setShowTaskModal(true);
+    onRequestTaskCreation?.(id);
   };
 
   const handleConvertToKnowledge = () => {
-    setShowKnowledgeModal(true);
-  };
-
-  const handleTaskCreate = (taskData: NewTaskData) => {
-    console.log("Creating task from message:", { messageId: id, taskData });
-    onConvertToTask?.(id);
-    // Here you would typically call an API to create the task
-  };
-
-  const handleKnowledgeCreate = (knowledgeData: CreateKnowledgeData) => {
-    console.log("Creating knowledge from message:", { messageId: id, knowledgeData });
-    onConvertToKnowledge?.(id);
-    // Here you would typically call an API to create the knowledge article
+    onRequestKnowledgeCreation?.(id);
   };
 
   const handleReply = () => {
@@ -185,24 +164,6 @@ export function ChatMessage(props: ChatMessageProps) {
         </div>
       </div>
 
-      {/* Task Creation Modal */}
-      <NewTaskModal
-        open={showTaskModal}
-        onOpenChange={setShowTaskModal}
-        onTaskCreate={handleTaskCreate}
-        messageContent={content}
-        relatedChatId={props.channelId}
-      />
-
-      {/* Knowledge Creation Modal */}
-      <CreateKnowledgeModal
-        isOpen={showKnowledgeModal}
-        onClose={() => setShowKnowledgeModal(false)}
-        onCreateKnowledge={handleKnowledgeCreate}
-        messageContent={content}
-        messageAuthor={userName}
-        relatedChatId={props.channelId}
-      />
     </>
   );
 }

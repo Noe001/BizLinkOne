@@ -9,6 +9,8 @@ import { KnowledgeCard } from "@/components/KnowledgeCard";
 import { MeetingCard } from "@/components/MeetingCard";
 import type { MeetingStatus } from "@/components/MeetingCard";
 import { useNotifications } from "@/components/NotificationPanel";
+import { NewTaskModal, type NewTaskData } from "@/components/NewTaskModal";
+import { CreateKnowledgeModal, type CreateKnowledgeData } from "@/components/CreateKnowledgeModal";
 import {
   StatCardSkeleton,
   MessageSkeleton,
@@ -20,6 +22,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { ChatMessage as ChatMessageType, Task, KnowledgeArticle, Meeting } from "@shared/schema";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useState } from "react";
 import { dashboardSummary, sampleProjects } from "@/data/projects";
 
 interface DashboardStats {
@@ -29,9 +32,18 @@ interface DashboardStats {
   upcomingMeetings: number;
 }
 
+interface MessageModalContext {
+  messageId: string;
+  content: string;
+  authorName: string;
+  channelId?: string;
+}
+
 export default function Dashboard() {
   const { t } = useTranslation();
   const { addNotification } = useNotifications();
+  const [taskModalContext, setTaskModalContext] = useState<MessageModalContext | null>(null);
+  const [knowledgeModalContext, setKnowledgeModalContext] = useState<MessageModalContext | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/stats"],
@@ -53,22 +65,62 @@ export default function Dashboard() {
     queryKey: ["/api/meetings"],
   });
 
-  const handleConvertToTask = (messageId: string) => {
-    console.log(t("dashboard.log.convertToTask"), messageId);
+  const handleRequestTaskCreation = (messageId: string) => {
+    const message = (messages ?? []).find(item => item.id === messageId);
+    if (!message) {
+      console.warn(`Unable to find message ${messageId} for task conversion.`);
+      return;
+    }
+
+    setTaskModalContext({
+      messageId,
+      content: message.content,
+      authorName: message.userName,
+      channelId: message.channelId ?? undefined,
+    });
+  };
+
+  const handleTaskCreate = (taskData: NewTaskData) => {
+    if (!taskModalContext) {
+      return;
+    }
+
+    console.log(t("dashboard.log.convertToTask"), taskModalContext.messageId, taskData);
     addNotification({
       type: "task",
       title: t("dashboard.notifications.taskCreated.title"),
       message: t("dashboard.notifications.taskCreated.message"),
     });
+    setTaskModalContext(null);
   };
 
-  const handleConvertToKnowledge = (messageId: string) => {
-    console.log(t("dashboard.log.convertToKnowledge"), messageId);
+  const handleRequestKnowledgeCreation = (messageId: string) => {
+    const message = (messages ?? []).find(item => item.id === messageId);
+    if (!message) {
+      console.warn(`Unable to find message ${messageId} for knowledge conversion.`);
+      return;
+    }
+
+    setKnowledgeModalContext({
+      messageId,
+      content: message.content,
+      authorName: message.userName,
+      channelId: message.channelId ?? undefined,
+    });
+  };
+
+  const handleKnowledgeCreate = (knowledgeData: CreateKnowledgeData) => {
+    if (!knowledgeModalContext) {
+      return;
+    }
+
+    console.log(t("dashboard.log.convertToKnowledge"), knowledgeModalContext.messageId, knowledgeData);
     addNotification({
       type: "knowledge",
       title: t("dashboard.notifications.knowledgeCreated.title"),
       message: t("dashboard.notifications.knowledgeCreated.message"),
     });
+    setKnowledgeModalContext(null);
   };
 
   const handleReply = (messageId: string) => {
@@ -243,8 +295,8 @@ export default function Dashboard() {
                     key={message.id}
                     {...message}
                     channelId={message.channelId || undefined}
-                    onConvertToTask={handleConvertToTask}
-                    onConvertToKnowledge={handleConvertToKnowledge}
+                    onRequestTaskCreation={handleRequestTaskCreation}
+                    onRequestKnowledgeCreation={handleRequestKnowledgeCreation}
                     onReply={handleReply}
                   />
                 ))
@@ -371,6 +423,26 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+      <NewTaskModal
+        open={Boolean(taskModalContext)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTaskModalContext(null);
+          }
+        }}
+        onTaskCreate={handleTaskCreate}
+        messageContent={taskModalContext?.content}
+        relatedChatId={taskModalContext?.channelId}
+      />
+
+      <CreateKnowledgeModal
+        isOpen={Boolean(knowledgeModalContext)}
+        onClose={() => setKnowledgeModalContext(null)}
+        onCreateKnowledge={handleKnowledgeCreate}
+        messageContent={knowledgeModalContext?.content}
+        messageAuthor={knowledgeModalContext?.authorName}
+        relatedChatId={knowledgeModalContext?.channelId}
+      />
     </div>
   );
 }

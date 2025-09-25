@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,12 @@ export function CreateKnowledgeModal({
   const [category, setCategory] = useState("Development");
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setContent(messageContent);
+    }
+  }, [isOpen, messageContent]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

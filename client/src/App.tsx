@@ -8,13 +8,11 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
-import { NotificationPanel, NotificationsProvider, useNotifications, NotificationContent } from "@/components/NotificationPanel";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
+import { NotificationsProvider } from "@/components/NotificationPanel";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider, useTranslation } from "@/contexts/LanguageContext";
 import { Input } from "@/components/ui/input";
-import { Search, Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import Dashboard from "@/pages/Dashboard";
 import Chat from "@/pages/Chat";
 import Projects from "@/pages/Projects";
@@ -28,6 +26,7 @@ import SignupPage from "@/pages/Signup";
 import WorkspaceCreatePage from "@/pages/WorkspaceCreate";
 import WorkspaceJoinPage from "@/pages/WorkspaceJoin";
 import NotFound from "@/pages/not-found";
+import { HeaderBellDropdown } from "@/components/HeaderBellDropdown";
 
 function AuthenticatedRouter() {
   return (
@@ -140,49 +139,6 @@ function AuthenticatedApp() {
   };
 
   const headerTitle = getHeaderTitle(location || "/");
-
-  // Header bell uses dropdown to match user menu placement
-  function HeaderBellDropdown() {
-    const { isOpen, setIsOpen, notifications, unreadCount, setNotifications } = useNotifications();
-
-    const markAsRead = (id: string) => {
-      setNotifications((prev: any[]) => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-    };
-
-    const markAllAsRead = () => {
-      setNotifications((prev: any[]) => prev.map(n => ({ ...n, isRead: true })));
-    };
-
-    const deleteNotification = (id: string) => {
-      setNotifications((prev: any[]) => prev.filter(n => n.id !== id));
-    };
-
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" aria-label={t('header.notificationsAria')} className="relative border-0" data-testid="header-notifications">
-            <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 min-w-[1rem] px-1 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent side="bottom" align="end" sideOffset={8} className="w-96 p-0">
-          <NotificationContent
-            notifications={notifications}
-            unreadCount={unreadCount}
-            markAllAsRead={markAllAsRead}
-            markAsRead={markAsRead}
-            deleteNotification={deleteNotification}
-            onClose={() => setIsOpen(false)}
-          />
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
