@@ -93,6 +93,7 @@ export default function SignupPage({ onSignup }: SignupPageProps) {
                 placeholder={t('auth.signup.namePlaceholder')}
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                autoComplete="name"
                 required
               />
             </div>
@@ -105,6 +106,7 @@ export default function SignupPage({ onSignup }: SignupPageProps) {
                 placeholder={t('auth.signup.emailPlaceholder')}
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
@@ -120,6 +122,7 @@ export default function SignupPage({ onSignup }: SignupPageProps) {
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   required
                   minLength={8}
+                  autoComplete="new-password"
                   className="flex-1"
                 />
                 <Button
@@ -149,6 +152,7 @@ export default function SignupPage({ onSignup }: SignupPageProps) {
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   required
+                  autoComplete="new-password"
                   className="flex-1"
                 />
                 <Button

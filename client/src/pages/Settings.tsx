@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,31 +7,26 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
+import {
   Settings as SettingsIcon,
-  Users, 
-  Shield, 
-  Building, 
-  Globe, 
-  Save, 
+  Users,
+  Shield,
+  Building,
+  Globe,
+  Save,
   AlertCircle,
   Plus,
   Trash2,
   Edit,
   Crown,
   Mail,
-  UserCheck,
-  UserX,
-  Calendar,
-  Database,
-  BarChart3,
-  Clock
+  BarChart3
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 // Mock workspace data
 const mockWorkspace = {
@@ -58,22 +53,62 @@ const mockTeamMembers = [
   { id: "4", name: "Alice Cooper", email: "alice@acme.com", role: "Member", status: "pending", joinDate: "2024-03-01" }
 ];
 
+const timezoneOptions = [
+  { value: "America/New_York", labelKey: "settings.general.timezones.et" },
+  { value: "America/Chicago", labelKey: "settings.general.timezones.ct" },
+  { value: "America/Denver", labelKey: "settings.general.timezones.mt" },
+  { value: "America/Los_Angeles", labelKey: "settings.general.timezones.pt" },
+  { value: "Europe/London", labelKey: "settings.general.timezones.gmt" },
+  { value: "Europe/Paris", labelKey: "settings.general.timezones.cet" },
+  { value: "Asia/Tokyo", labelKey: "settings.general.timezones.jst" }
+] as const;
+
+const languageOptions = [
+  { value: "en", labelKey: "settings.general.languages.en" },
+  { value: "es", labelKey: "settings.general.languages.es" },
+  { value: "fr", labelKey: "settings.general.languages.fr" },
+  { value: "de", labelKey: "settings.general.languages.de" },
+  { value: "ja", labelKey: "settings.general.languages.ja" }
+] as const;
+
+const sessionTimeoutOptions = [
+  { value: "15" },
+  { value: "30" },
+  { value: "60" },
+  { value: "240" },
+  { value: "480" }
+] as const;
+
+const roleOptions = ["Admin", "Manager", "Member"] as const;
+
+type WorkspaceData = {
+  name: string;
+  domain: string;
+  description: string;
+  timezone: string;
+  language: string;
+  allowGuestAccess: boolean;
+  requireTwoFactor: boolean;
+  sessionTimeout: number;
+};
+
 export default function Settings() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("general");
   const [isDirty, setIsDirty] = useState(false);
 
   // Set active tab based on URL parameter
   useEffect(() => {
-    const pathParts = location?.split('/');
+    const pathParts = location?.split("/");
     const tabParam = pathParts?.[2]; // /settings/[tab]
-    if (tabParam && ['general', 'team', 'security', 'billing'].includes(tabParam)) {
+    if (tabParam && ["general", "team", "security", "billing"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [location]);
-  
+
   // Workspace settings
-  const [workspaceData, setWorkspaceData] = useState({
+  const [workspaceData, setWorkspaceData] = useState<WorkspaceData>({
     name: mockWorkspace.name,
     domain: mockWorkspace.domain,
     description: "A collaborative workspace for Acme Corporation team members.",
@@ -90,8 +125,8 @@ export default function Settings() {
     // Here you would typically make API calls to save the settings
   };
 
-  const handleWorkspaceChange = (field: string, value: string | boolean | number) => {
-    setWorkspaceData(prev => ({ ...prev, [field]: value }));
+  const handleWorkspaceChange = <K extends keyof WorkspaceData>(field: K, value: WorkspaceData[K]) => {
+    setWorkspaceData((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
   };
 
@@ -100,12 +135,12 @@ export default function Settings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground">
-          Manage workspace configuration, team members, and organization settings.
+          {t("settings.header.description")}
         </p>
         {isDirty && (
           <Button onClick={handleSave} className="flex items-center gap-2">
             <Save className="h-4 w-4" />
-            Save Changes
+            {t("settings.actions.saveChanges")}
           </Button>
         )}
       </div>
@@ -114,7 +149,7 @@ export default function Settings() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            You have unsaved changes. Click "Save Changes" to apply them.
+            {t("settings.alert.unsaved", { action: t("settings.actions.saveChanges") })}
           </AlertDescription>
         </Alert>
       )}
@@ -123,19 +158,19 @@ export default function Settings() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
-            General
+            {t("settings.tabs.general")}
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Team Management
+            {t("settings.tabs.team")}
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Security
+            {t("settings.tabs.security")}
           </TabsTrigger>
           <TabsTrigger value="billing" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Billing & Plans
+            {t("settings.tabs.billing")}
           </TabsTrigger>
         </TabsList>
 
@@ -145,69 +180,67 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
-                Workspace Information
+                {t("settings.general.workspaceInfo.title")}
               </CardTitle>
               <CardDescription>
-                Basic information about your workspace and organization.
+                {t("settings.general.workspaceInfo.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="workspace-name">Workspace Name</Label>
-                  <Input 
+                  <Label htmlFor="workspace-name">{t("settings.general.fields.name")}</Label>
+                  <Input
                     id="workspace-name"
                     value={workspaceData.name}
-                    onChange={(e) => handleWorkspaceChange('name', e.target.value)}
+                    onChange={(e) => handleWorkspaceChange("name", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="workspace-domain">Domain</Label>
-                  <Input 
+                  <Label htmlFor="workspace-domain">{t("settings.general.fields.domain")}</Label>
+                  <Input
                     id="workspace-domain"
                     value={workspaceData.domain}
-                    onChange={(e) => handleWorkspaceChange('domain', e.target.value)}
+                    onChange={(e) => handleWorkspaceChange("domain", e.target.value)}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="workspace-description">Description</Label>
-                <Input 
+                <Label htmlFor="workspace-description">{t("settings.general.fields.description")}</Label>
+                <Input
                   id="workspace-description"
                   value={workspaceData.description}
-                  onChange={(e) => handleWorkspaceChange('description', e.target.value)}
+                  onChange={(e) => handleWorkspaceChange("description", e.target.value)}
                 />
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="workspace-timezone">Default Timezone</Label>
-                  <Select value={workspaceData.timezone} onValueChange={(value) => handleWorkspaceChange('timezone', value)}>
+                  <Label htmlFor="workspace-timezone">{t("settings.general.fields.timezone")}</Label>
+                  <Select value={workspaceData.timezone} onValueChange={(value) => handleWorkspaceChange("timezone", value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                      <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                      <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                      <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                      <SelectItem value="Europe/London">Greenwich Mean Time (GMT)</SelectItem>
-                      <SelectItem value="Europe/Paris">Central European Time (CET)</SelectItem>
-                      <SelectItem value="Asia/Tokyo">Japan Standard Time (JST)</SelectItem>
+                      {timezoneOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {t(option.labelKey)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="workspace-language">Default Language</Label>
-                  <Select value={workspaceData.language} onValueChange={(value) => handleWorkspaceChange('language', value)}>
+                  <Label htmlFor="workspace-language">{t("settings.general.fields.language")}</Label>
+                  <Select value={workspaceData.language} onValueChange={(value) => handleWorkspaceChange("language", value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="ja">Japanese</SelectItem>
+                      {languageOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {t(option.labelKey)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -219,23 +252,23 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
-                Access & Permissions
+                {t("settings.general.access.title")}
               </CardTitle>
               <CardDescription>
-                Control who can access your workspace and how.
+                {t("settings.general.access.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <Label>Guest Access</Label>
+                  <Label>{t("settings.general.access.guestAccess.label")}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Allow external users to be invited as guests
+                    {t("settings.general.access.guestAccess.description")}
                   </p>
                 </div>
                 <Switch
                   checked={workspaceData.allowGuestAccess}
-                  onCheckedChange={(checked) => handleWorkspaceChange('allowGuestAccess', checked)}
+                  onCheckedChange={(checked) => handleWorkspaceChange("allowGuestAccess", checked)}
                 />
               </div>
             </CardContent>
@@ -248,11 +281,11 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Team Members
-                <Badge variant="secondary">{mockTeamMembers.length} members</Badge>
+                {t("settings.team.title")}
+                <Badge variant="secondary">{t("settings.team.membersBadge", { count: mockTeamMembers.length })}</Badge>
               </CardTitle>
               <CardDescription>
-                Manage team members, roles, and permissions.
+                {t("settings.team.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -260,44 +293,46 @@ export default function Settings() {
                 <div className="flex gap-2">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
-                    Invite Members
+                    {t("settings.team.actions.inviteMembers")}
                   </Button>
                   <Button variant="outline">
                     <Mail className="h-4 w-4 mr-2" />
-                    Bulk Invite
+                    {t("settings.team.actions.bulkInvite")}
                   </Button>
                 </div>
               </div>
-              
+
               <div className="space-y-3">
                 {mockTeamMembers.map((member) => (
                   <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback>
-                          {member.name.split(' ').map(n => n[0]).join('')}
+                          {member.name.split(" ").map((n) => n[0]).join("")}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{member.name}</p>
-                          {member.role === 'Admin' && <Crown className="h-4 w-4 text-yellow-500" />}
-                          <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                            {member.status}
+                          {member.role === "Admin" && <Crown className="h-4 w-4 text-yellow-500" />}
+                          <Badge variant={member.status === "active" ? "default" : "secondary"}>
+                            {t(`settings.team.statuses.${member.status as "active" | "pending"}`)}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">{member.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Select value={member.role} disabled={member.role === 'Admin'}>
+                      <Select value={member.role} disabled={member.role === "Admin"}>
                         <SelectTrigger className="w-24">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Admin">Admin</SelectItem>
-                          <SelectItem value="Manager">Manager</SelectItem>
-                          <SelectItem value="Member">Member</SelectItem>
+                          {roleOptions.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {t(`settings.team.roles.${role.toLowerCase()}`)}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <Button variant="ghost" size="sm">
@@ -320,37 +355,37 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Security Policies
+                {t("settings.security.title")}
               </CardTitle>
               <CardDescription>
-                Configure security settings and authentication requirements.
+                {t("settings.security.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <Label>Require Two-Factor Authentication</Label>
+                  <Label>{t("settings.security.requireTwoFactor.label")}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Enforce 2FA for all workspace members
+                    {t("settings.security.requireTwoFactor.description")}
                   </p>
                 </div>
                 <Switch
                   checked={workspaceData.requireTwoFactor}
-                  onCheckedChange={(checked) => handleWorkspaceChange('requireTwoFactor', checked)}
+                  onCheckedChange={(checked) => handleWorkspaceChange("requireTwoFactor", checked)}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Session Timeout (minutes)</Label>
-                <Select value={workspaceData.sessionTimeout.toString()} onValueChange={(value) => handleWorkspaceChange('sessionTimeout', parseInt(value))}>
+                <Label>{t("settings.security.sessionTimeout.label")}</Label>
+                <Select value={workspaceData.sessionTimeout.toString()} onValueChange={(value) => handleWorkspaceChange("sessionTimeout", parseInt(value, 10))}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="60">1 hour</SelectItem>
-                    <SelectItem value="240">4 hours</SelectItem>
-                    <SelectItem value="480">8 hours</SelectItem>
+                    {sessionTimeoutOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(`settings.security.sessionTimeout.options.${option.value}`)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -364,40 +399,40 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Current Plan
+                {t("settings.billing.currentPlan.title")}
               </CardTitle>
               <CardDescription>
-                Manage your subscription and billing information.
+                {t("settings.billing.currentPlan.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-3 gap-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Current Plan</p>
+                  <p className="text-sm text-muted-foreground">{t("settings.billing.currentPlan.planLabel")}</p>
                   <p className="text-2xl font-bold">{mockWorkspace.billing.plan}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Seats Used</p>
+                  <p className="text-sm text-muted-foreground">{t("settings.billing.currentPlan.seatsLabel")}</p>
                   <p className="text-2xl font-bold">{mockWorkspace.billing.usedSeats}/{mockWorkspace.billing.seats}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Monthly Cost</p>
+                  <p className="text-sm text-muted-foreground">{t("settings.billing.currentPlan.costLabel")}</p>
                   <p className="text-2xl font-bold">${mockWorkspace.billing.amount}</p>
                 </div>
               </div>
-              
+
               <Separator />
-              
+
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-medium">Next billing date</p>
+                  <p className="font-medium">{t("settings.billing.nextBilling.title")}</p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(mockWorkspace.billing.nextBilling).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline">Change Plan</Button>
-                  <Button variant="outline">Add Seats</Button>
+                  <Button variant="outline">{t("settings.billing.actions.changePlan")}</Button>
+                  <Button variant="outline">{t("settings.billing.actions.addSeats")}</Button>
                 </div>
               </div>
             </CardContent>

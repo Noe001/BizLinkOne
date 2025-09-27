@@ -60,6 +60,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 placeholder={t('auth.login.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 required
               />
             </div>
@@ -73,6 +74,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                   className="flex-1"
                 />
                 <Button

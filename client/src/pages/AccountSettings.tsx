@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,10 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
+import { useTranslation } from "@/contexts/LanguageContext";
 
+const tabs = ["profile", "notifications", "appearance", "security"] as const;
+type AccountSettingsTab = (typeof tabs)[number];
 // Mock user data
 const mockUser = {
   id: "current-user",
@@ -46,9 +49,53 @@ const mockUser = {
 };
 
 export default function AccountSettings() {
-  const [location] = useLocation();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [location, setLocation] = useLocation();
+  const { t } = useTranslation();
+
+  const parseTabFromLocation = (loc: string): AccountSettingsTab | null => {
+    const parts = loc.split("?");
+    if (parts.length < 2) {
+      return null;
+    }
+    const params = new URLSearchParams(parts[1]);
+    const tabParam = params.get("tab");
+    if (tabParam && tabs.includes(tabParam as AccountSettingsTab)) {
+      return tabParam as AccountSettingsTab;
+    }
+    return null;
+  };
+
+  const [activeTab, setActiveTab] = useState<AccountSettingsTab>(() => parseTabFromLocation(location) ?? "profile");
   const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    const urlTab = parseTabFromLocation(location);
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [location, activeTab]);
+
+  const handleTabChange = (value: string) => {
+    if (!tabs.includes(value as AccountSettingsTab)) {
+      return;
+    }
+    setActiveTab(value as AccountSettingsTab);
+    const splitLocation = location.split("?");
+    const path = splitLocation[0];
+    const params = new URLSearchParams(splitLocation[1] ?? "");
+    params.set("tab", value);
+    const search = params.toString();
+    const newLocation = search ? `${path}?${search}` : path;
+    if (newLocation !== location) {
+      setLocation(newLocation, { replace: true });
+    }
+  };
+
+  const roleLabels: Record<string, string> = {
+    Admin: t('settings.team.roles.admin'),
+    Manager: t('settings.team.roles.manager'),
+    Member: t('settings.team.roles.member'),
+  };
 
   // Profile settings
   const [profileData, setProfileData] = useState({
@@ -123,17 +170,17 @@ export default function AccountSettings() {
           <Link href="/">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+{t('accountSettings.header.back')}
             </Button>
           </Link>
           <p className="text-muted-foreground">
-            Manage your personal account settings and preferences.
+            {t('accountSettings.header.description')}
           </p>
         </div>
         {isDirty && (
           <Button onClick={handleSave} className="flex items-center gap-2">
             <Save className="h-4 w-4" />
-            Save Changes
+            {t('accountSettings.actions.saveChanges')}
           </Button>
         )}
       </div>
@@ -142,28 +189,28 @@ export default function AccountSettings() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            You have unsaved changes. Click "Save Changes" to apply them.
+            {t('accountSettings.alert.unsaved', { action: t('accountSettings.actions.saveChanges') })}
           </AlertDescription>
         </Alert>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
-            Profile
+{t('accountSettings.tabs.profile')}
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            Notifications
+{t('accountSettings.tabs.notifications')}
           </TabsTrigger>
           <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
-            Appearance
+{t('accountSettings.tabs.appearance')}
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Security & Privacy
+            {t('accountSettings.tabs.security')}
           </TabsTrigger>
         </TabsList>
 
@@ -173,10 +220,10 @@ export default function AccountSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Profile Information
+                {t('accountSettings.profile.title')}
               </CardTitle>
               <CardDescription>
-                Update your personal information and contact details.
+                {t('accountSettings.profile.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -200,19 +247,19 @@ export default function AccountSettings() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-medium">{mockUser.name}</h3>
-                    <Badge variant="outline">{mockUser.role}</Badge>
+                    <Badge variant="outline">{roleLabels[mockUser.role] ?? mockUser.role}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Member since {new Date(mockUser.joinDate).toLocaleDateString()}
+                    {t('accountSettings.profile.avatar.memberSince', { date: new Date(mockUser.joinDate).toLocaleDateString() })}
                   </p>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline">
                       <Upload className="h-4 w-4 mr-2" />
-                      Upload Photo
+                      {t('accountSettings.profile.avatar.upload')}
                     </Button>
                     <Button size="sm" variant="ghost" className="text-red-600">
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Remove
+{t('accountSettings.profile.avatar.remove')}
                     </Button>
                   </div>
                 </div>
@@ -223,7 +270,7 @@ export default function AccountSettings() {
               {/* Basic Information */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">{t('accountSettings.profile.fields.name')}</Label>
                   <Input 
                     id="name"
                     value={profileData.name}
@@ -231,7 +278,7 @@ export default function AccountSettings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email">{t('accountSettings.profile.fields.email')}</Label>
                   <Input 
                     id="email"
                     type="email"
@@ -240,35 +287,35 @@ export default function AccountSettings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
+                  <Label htmlFor="department">{t('accountSettings.profile.fields.department')}</Label>
                   <Select value={profileData.department} onValueChange={(value) => handleProfileChange('department', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Engineering">Engineering</SelectItem>
-                      <SelectItem value="Design">Design</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Sales">Sales</SelectItem>
-                      <SelectItem value="Support">Support</SelectItem>
-                      <SelectItem value="HR">Human Resources</SelectItem>
+                      <SelectItem value="Engineering">{t('accountSettings.profile.departments.engineering')}</SelectItem>
+                      <SelectItem value="Design">{t('accountSettings.profile.departments.design')}</SelectItem>
+                      <SelectItem value="Marketing">{t('accountSettings.profile.departments.marketing')}</SelectItem>
+                      <SelectItem value="Sales">{t('accountSettings.profile.departments.sales')}</SelectItem>
+                      <SelectItem value="Support">{t('accountSettings.profile.departments.support')}</SelectItem>
+                      <SelectItem value="HR">{t('accountSettings.profile.departments.humanResources')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
+                  <Label htmlFor="timezone">{t('accountSettings.profile.fields.timezone')}</Label>
                   <Select value={profileData.timezone} onValueChange={(value) => handleProfileChange('timezone', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                      <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                      <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                      <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                      <SelectItem value="Europe/London">Greenwich Mean Time (GMT)</SelectItem>
-                      <SelectItem value="Europe/Paris">Central European Time (CET)</SelectItem>
-                      <SelectItem value="Asia/Tokyo">Japan Standard Time (JST)</SelectItem>
+                      <SelectItem value="America/New_York">{t('settings.general.timezones.et')}</SelectItem>
+                      <SelectItem value="America/Chicago">{t('settings.general.timezones.ct')}</SelectItem>
+                      <SelectItem value="America/Denver">{t('settings.general.timezones.mt')}</SelectItem>
+                      <SelectItem value="America/Los_Angeles">{t('settings.general.timezones.pt')}</SelectItem>
+                      <SelectItem value="Europe/London">{t('settings.general.timezones.gmt')}</SelectItem>
+                      <SelectItem value="Europe/Paris">{t('settings.general.timezones.cet')}</SelectItem>
+                      <SelectItem value="Asia/Tokyo">{t('settings.general.timezones.jst')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -283,28 +330,25 @@ export default function AccountSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mail className="h-5 w-5" />
-                Email Notifications
+                {t('accountSettings.notifications.email.title')}
               </CardTitle>
               <CardDescription>
-                Configure when you receive email notifications.
+                {t('accountSettings.notifications.email.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(notifications.email).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+                    <Label>{t(`accountSettings.notifications.email.items.${key}.label`)}</Label>
                     <p className="text-sm text-muted-foreground">
-                      {key === 'mentions' && 'When someone mentions you in a message'}
-                      {key === 'directMessages' && 'When you receive a direct message'}
-                      {key === 'taskAssignments' && 'When you are assigned to a task'}
-                      {key === 'meetingReminders' && 'Reminders before scheduled meetings'}
-                      {key === 'weeklyDigest' && 'Weekly summary of your activity'}
+                      {t(`accountSettings.notifications.email.items.${key}.description`)}
                     </p>
                   </div>
                   <Switch
                     checked={value}
                     onCheckedChange={(checked) => handleNotificationChange('email', key, checked)}
+                    aria-label={t(`accountSettings.notifications.email.items.${key}.label`)}
                   />
                 </div>
               ))}
@@ -315,27 +359,25 @@ export default function AccountSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
-                Push Notifications
+                {t('accountSettings.notifications.push.title')}
               </CardTitle>
               <CardDescription>
-                Configure real-time push notifications.
+                {t('accountSettings.notifications.push.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(notifications.push).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+                    <Label>{t(`accountSettings.notifications.push.items.${key}.label`)}</Label>
                     <p className="text-sm text-muted-foreground">
-                      {key === 'mentions' && 'Instant notifications for mentions'}
-                      {key === 'directMessages' && 'Instant notifications for DMs'}
-                      {key === 'taskDeadlines' && 'Alerts for approaching task deadlines'}
-                      {key === 'meetingStart' && 'Notifications when meetings begin'}
+                      {t(`accountSettings.notifications.push.items.${key}.description`)}
                     </p>
                   </div>
                   <Switch
                     checked={value}
                     onCheckedChange={(checked) => handleNotificationChange('push', key, checked)}
+                    aria-label={t(`accountSettings.notifications.push.items.${key}.label`)}
                   />
                 </div>
               ))}
@@ -349,20 +391,20 @@ export default function AccountSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
-                Theme & Display
+                {t('accountSettings.appearance.title')}
               </CardTitle>
               <CardDescription>
-                Customize the look and feel of your workspace.
+                {t('accountSettings.appearance.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Label>Theme</Label>
+                <Label>{t('accountSettings.appearance.themeLabel')}</Label>
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    { value: 'light', icon: Sun, label: 'Light' },
-                    { value: 'dark', icon: Moon, label: 'Dark' },
-                    { value: 'system', icon: Monitor, label: 'System' }
+                    { value: 'light', icon: Sun },
+                    { value: 'dark', icon: Moon },
+                    { value: 'system', icon: Monitor }
                   ].map((theme) => (
                     <Card 
                       key={theme.value}
@@ -373,7 +415,9 @@ export default function AccountSettings() {
                     >
                       <CardContent className="flex flex-col items-center justify-center p-6">
                         <theme.icon className="h-8 w-8 mb-2" />
-                        <span className="text-sm font-medium">{theme.label}</span>
+                        <span className="text-sm font-medium">
+                          {t(`accountSettings.appearance.themes.${theme.value}`)}
+                        </span>
                       </CardContent>
                     </Card>
                   ))}
@@ -383,13 +427,15 @@ export default function AccountSettings() {
               <Separator />
 
               <div className="space-y-3">
-                <Label>Accent Color</Label>
+                <Label>{t('accountSettings.appearance.accentLabel')}</Label>
                 <div className="grid grid-cols-8 gap-2">
                   {[
                     'blue', 'green', 'purple', 'red', 'orange', 'yellow', 'pink', 'indigo'
                   ].map((color) => (
                     <button
                       key={color}
+                      title={t(`accountSettings.appearance.colors.${color}`)}
+                      aria-label={t(`accountSettings.appearance.colors.${color}`)}
                       className={`h-8 w-8 rounded-full ${
                         color === 'blue' ? 'bg-blue-500' :
                         color === 'green' ? 'bg-green-500' :
@@ -413,26 +459,28 @@ export default function AccountSettings() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Compact Mode</Label>
+                    <Label>{t('accountSettings.appearance.options.compactMode.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Reduce spacing and padding for a more compact interface
+                      {t('accountSettings.appearance.options.compactMode.description')}
                     </p>
                   </div>
                   <Switch
                     checked={appearance.compactMode}
                     onCheckedChange={(checked) => setAppearance(prev => ({ ...prev, compactMode: checked }))}
+                    aria-label={t('accountSettings.appearance.options.compactMode.label')}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Sidebar Collapsed by Default</Label>
+                    <Label>{t('accountSettings.appearance.options.sidebarCollapsed.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Start with the sidebar in collapsed state
+                      {t('accountSettings.appearance.options.sidebarCollapsed.description')}
                     </p>
                   </div>
                   <Switch
                     checked={appearance.sidebarCollapsed}
                     onCheckedChange={(checked) => setAppearance(prev => ({ ...prev, sidebarCollapsed: checked }))}
+                    aria-label={t('accountSettings.appearance.options.sidebarCollapsed.label')}
                   />
                 </div>
               </div>
@@ -446,32 +494,32 @@ export default function AccountSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="h-5 w-5" />
-                Password & Authentication
+                {t('accountSettings.security.title')}
               </CardTitle>
               <CardDescription>
-                Manage your account security and authentication methods.
+                {t('accountSettings.security.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Current Password</Label>
+                    <Label>{t('accountSettings.security.currentPassword.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Last changed 3 months ago
+                      {t('accountSettings.security.currentPassword.description')}
                     </p>
                   </div>
-                  <Button variant="outline">Change Password</Button>
+                  <Button variant="outline">{t('accountSettings.security.changePassword')}</Button>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Two-Factor Authentication</Label>
+                    <Label>{t('accountSettings.security.twoFactor.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Add an extra layer of security to your account
+                      {t('accountSettings.security.twoFactor.description')}
                     </p>
                   </div>
                   <Badge variant="outline" className="text-green-600">
-                    Enabled
+                    {t('accountSettings.security.twoFactor.enabled')}
                   </Badge>
                 </div>
               </div>
@@ -479,26 +527,26 @@ export default function AccountSettings() {
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Active Sessions</h4>
+                <h4 className="text-sm font-medium">{t('accountSettings.security.sessions.title')}</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Current Session</p>
+                      <p className="text-sm font-medium">{t('accountSettings.security.sessions.current.label')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Chrome on Windows • New York, NY
+                        {t('accountSettings.security.sessions.current.description')}
                       </p>
                     </div>
-                    <Badge variant="secondary">Active</Badge>
+                    <Badge variant="secondary">{t('accountSettings.security.sessions.current.status')}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Mobile App</p>
+                      <p className="text-sm font-medium">{t('accountSettings.security.sessions.mobile.label')}</p>
                       <p className="text-xs text-muted-foreground">
-                        iOS • Last seen 2 hours ago
+                        {t('accountSettings.security.sessions.mobile.description')}
                       </p>
                     </div>
                     <Button variant="ghost" size="sm" className="text-red-600">
-                      Revoke
+                      {t('accountSettings.security.sessions.mobile.action')}
                     </Button>
                   </div>
                 </div>
@@ -510,19 +558,19 @@ export default function AccountSettings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Privacy Settings
+                {t('accountSettings.security.privacy.title')}
               </CardTitle>
               <CardDescription>
-                Control how your information is shared and displayed.
+                {t('accountSettings.security.privacy.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Profile Visibility</Label>
+                    <Label>{t('accountSettings.security.privacy.profileVisibility.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Who can see your profile information
+                      {t('accountSettings.security.privacy.profileVisibility.description')}
                     </p>
                   </div>
                   <Select value={privacy.profileVisibility} onValueChange={(value) => setPrivacy(prev => ({ ...prev, profileVisibility: value }))}>
@@ -530,34 +578,36 @@ export default function AccountSettings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="everyone">Everyone</SelectItem>
-                      <SelectItem value="team">Team Only</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
+                      <SelectItem value="everyone">{t('accountSettings.security.privacy.profileVisibility.options.everyone')}</SelectItem>
+                      <SelectItem value="team">{t('accountSettings.security.privacy.profileVisibility.options.team')}</SelectItem>
+                      <SelectItem value="private">{t('accountSettings.security.privacy.profileVisibility.options.private')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Show Online Status</Label>
+                    <Label>{t('accountSettings.security.privacy.showOnlineStatus.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Let others see when you're online
+                      {t('accountSettings.security.privacy.showOnlineStatus.description')}
                     </p>
                   </div>
                   <Switch
                     checked={privacy.showOnlineStatus}
                     onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, showOnlineStatus: checked }))}
+                    aria-label={t('accountSettings.security.privacy.showOnlineStatus.label')}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Share Activity Status</Label>
+                    <Label>{t('accountSettings.security.privacy.shareActivity.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Share what you're working on with your team
+                      {t('accountSettings.security.privacy.shareActivity.description')}
                     </p>
                   </div>
                   <Switch
                     checked={privacy.shareActivity}
                     onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, shareActivity: checked }))}
+                    aria-label={t('accountSettings.security.privacy.shareActivity.label')}
                   />
                 </div>
               </div>
@@ -565,27 +615,28 @@ export default function AccountSettings() {
               <Separator />
 
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">Data & Analytics</h4>
+                <h4 className="text-sm font-medium">{t('accountSettings.security.privacy.dataAnalytics.title')}</h4>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label>Usage Analytics</Label>
+                    <Label>{t('accountSettings.security.privacy.dataAnalytics.usageAnalytics.label')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Help improve the platform by sharing usage data
+                      {t('accountSettings.security.privacy.dataAnalytics.usageAnalytics.description')}
                     </p>
                   </div>
                   <Switch
                     checked={privacy.dataAnalytics}
                     onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, dataAnalytics: checked }))}
+                    aria-label={t('accountSettings.security.privacy.dataAnalytics.usageAnalytics.label')}
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline">
                     <Download className="h-4 w-4 mr-2" />
-                    Download My Data
+                    {t('accountSettings.security.privacy.dataAnalytics.download')}
                   </Button>
                   <Button variant="outline" className="text-red-600">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
+                    {t('accountSettings.security.privacy.dataAnalytics.delete')}
                   </Button>
                 </div>
               </div>

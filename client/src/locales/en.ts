@@ -1,8 +1,114 @@
-﻿export const en = {
+export const en = {
   language: {
     label: "Language",
     english: "English",
     japanese: "Japanese",
+  },
+  settings: {
+    header: {
+      description: "Workspace settings and preferences.",
+    },
+    tabs: {
+      general: "General",
+      team: "Team",
+      security: "Security",
+      billing: "Billing",
+    },
+    actions: {
+      saveChanges: "Save Changes",
+    },
+    alert: {
+      unsaved: 'You have unsaved changes. Click "{{action}}" to apply them.',
+    },
+    general: {
+      workspaceInfo: {
+        title: "Workspace Information",
+        description: "Manage workspace-level settings and details.",
+      },
+      fields: {
+        name: "Workspace name",
+        domain: "Workspace domain",
+        description: "Description",
+        timezone: "Timezone",
+        language: "Language",
+      },
+      timezones: {
+        et: "Eastern Time (US)",
+        ct: "Central Time (US)",
+        mt: "Mountain Time (US)",
+        pt: "Pacific Time (US)",
+        gmt: "Greenwich Mean Time",
+        cet: "Central European Time",
+        jst: "Japan Standard Time",
+      },
+      languages: {
+        en: "English",
+        es: "Spanish",
+        fr: "French",
+        de: "German",
+        ja: "Japanese",
+      },
+      access: {
+        title: "Access & Permissions",
+        description: "Control who can access the workspace and what they can do.",
+        guestAccess: {
+          label: "Allow guest access",
+          description: "Permit invited guests to view or comment depending on permissions.",
+        },
+      },
+    },
+    team: {
+      title: "Team Management",
+      description: "Invite and manage members of your workspace.",
+      membersBadge: "{{count}} members",
+      actions: {
+        inviteMembers: "Invite Members",
+        bulkInvite: "Bulk Invite",
+      },
+      statuses: {
+        active: "Active",
+        pending: "Pending",
+      },
+      roles: {
+        admin: "Admin",
+        manager: "Manager",
+        member: "Member",
+      },
+    },
+    security: {
+      title: "Security",
+      description: "Security settings for the workspace.",
+      requireTwoFactor: {
+        label: "Require two-factor authentication",
+        description: "Require 2FA for all members when enabled.",
+      },
+      sessionTimeout: {
+        label: "Session timeout",
+        options: {
+          "15": "15 minutes",
+          "30": "30 minutes",
+          "60": "1 hour",
+          "240": "4 hours",
+          "480": "8 hours",
+        },
+      },
+    },
+    billing: {
+      currentPlan: {
+        title: "Current Plan",
+        description: "Billing and plan information for this workspace.",
+        planLabel: "Plan",
+        seatsLabel: "Seats",
+        costLabel: "Cost",
+      },
+      nextBilling: {
+        title: "Next billing",
+      },
+      actions: {
+        changePlan: "Change plan",
+        addSeats: "Add seats",
+      },
+    },
   },
   common: {
     appName: "BizLinkOne",
@@ -46,6 +152,185 @@
     languageTag: {
       en: "EN",
       ja: "JA",
+    },
+  },
+  accountSettings: {
+    header: {
+      back: "Back",
+      description: "Manage your personal account settings and preferences.",
+    },
+    actions: {
+      saveChanges: "Save Changes",
+    },
+    alert: {
+      unsaved: 'You have unsaved changes. Click "{{action}}" to apply them.',
+    },
+    tabs: {
+      profile: "Profile",
+      notifications: "Notifications",
+      appearance: "Appearance",
+      security: "Security & Privacy",
+    },
+    profile: {
+      title: "Profile Information",
+      description: "Update your personal information and contact details.",
+      avatar: {
+        memberSince: "Member since {{date}}",
+        upload: "Upload Photo",
+        remove: "Remove",
+      },
+      fields: {
+        name: "Full Name",
+        email: "Email Address",
+        department: "Department",
+        timezone: "Timezone",
+      },
+      departments: {
+        engineering: "Engineering",
+        design: "Design",
+        marketing: "Marketing",
+        sales: "Sales",
+        support: "Support",
+        humanResources: "Human Resources",
+      },
+    },
+    notifications: {
+      email: {
+        title: "Email Notifications",
+        description: "Configure when you receive email notifications.",
+        items: {
+          mentions: {
+            label: "Mentions",
+            description: "When someone mentions you in a message",
+          },
+          directMessages: {
+            label: "Direct messages",
+            description: "When you receive a direct message",
+          },
+          taskAssignments: {
+            label: "Task assignments",
+            description: "When you are assigned to a task",
+          },
+          meetingReminders: {
+            label: "Meeting reminders",
+            description: "Reminders before scheduled meetings",
+          },
+          weeklyDigest: {
+            label: "Weekly digest",
+            description: "Weekly summary of your activity",
+          },
+        },
+      },
+      push: {
+        title: "Push Notifications",
+        description: "Configure real-time push notifications.",
+        items: {
+          mentions: {
+            label: "Mentions",
+            description: "Instant notifications for mentions",
+          },
+          directMessages: {
+            label: "Direct messages",
+            description: "Instant notifications for DMs",
+          },
+          taskDeadlines: {
+            label: "Task deadlines",
+            description: "Alerts for approaching task deadlines",
+          },
+          meetingStart: {
+            label: "Meeting start",
+            description: "Notifications when meetings begin",
+          },
+        },
+      },
+    },
+    appearance: {
+      title: "Theme & Display",
+      description: "Customize the look and feel of your workspace.",
+      themeLabel: "Theme",
+      themes: {
+        light: "Light",
+        dark: "Dark",
+        system: "System",
+      },
+      accentLabel: "Accent Color",
+      colors: {
+        blue: "Blue",
+        green: "Green",
+        purple: "Purple",
+        red: "Red",
+        orange: "Orange",
+        yellow: "Yellow",
+        pink: "Pink",
+        indigo: "Indigo",
+      },
+      options: {
+        compactMode: {
+          label: "Compact Mode",
+          description: "Reduce spacing and padding for a more compact interface",
+        },
+        sidebarCollapsed: {
+          label: "Sidebar Collapsed by Default",
+          description: "Start with the sidebar in collapsed state",
+        },
+      },
+    },
+    security: {
+      title: "Password & Authentication",
+      description: "Manage your account security and authentication methods.",
+      currentPassword: {
+        label: "Current Password",
+        description: "Last changed 3 months ago",
+      },
+      changePassword: "Change Password",
+      twoFactor: {
+        label: "Two-Factor Authentication",
+        description: "Add an extra layer of security to your account",
+        enabled: "Enabled",
+      },
+      sessions: {
+        title: "Active Sessions",
+        current: {
+          label: "Current Session",
+          description: "Chrome on Windows ? New York, NY",
+          status: "Active",
+        },
+        mobile: {
+          label: "Mobile App",
+          description: "iOS ? Last seen 2 hours ago",
+          action: "Revoke",
+        },
+      },
+      privacy: {
+        title: "Privacy Settings",
+        description: "Control how your information is shared and displayed.",
+        profileVisibility: {
+          label: "Profile Visibility",
+          description: "Who can see your profile information",
+          options: {
+            everyone: "Everyone",
+            team: "Team Only",
+            private: "Private",
+          },
+        },
+        showOnlineStatus: {
+          label: "Show Online Status",
+          description: "Let others see when you're online",
+        },
+        shareActivity: {
+          label: "Share Activity Status",
+          description: "Share what you're working on with your team",
+        },
+        dataAnalytics: {
+          title: "Data & Analytics",
+          usageAnalytics: {
+            label: "Usage Analytics",
+            description: "Help improve the platform by sharing usage data",
+          },
+          download: "Download My Data",
+          delete: "Delete Account",
+        },
+      },
     },
   },
   auth: {
@@ -308,7 +593,7 @@
         done: "Done",
       },
       due: {
-        today: "Due today · {{date}}",
+        today: "Due today �E {{date}}",
         future: "Due {{date}} (in {{days}} days)",
         past: "Overdue {{date}} ({{days}} days ago)",
       },
@@ -789,7 +1074,7 @@
       log: "Creating project:",
     },
     tasks: {
-      heading: "Project tasks – {{project}}",
+      heading: "Project tasks ? {{project}}",
       progress: "Progress: {{value}}%",
       empty: "Select a project to view its tasks",
     },
@@ -805,7 +1090,7 @@
       core: {
         name: "Core platform overhaul",
         description: "Stabilise authentication, permissions, and foundational services.",
-        health: "Mostly on track – database refactor pending",
+        health: "Mostly on track ? database refactor pending",
         milestones: {
           auth: "Auth service refactor",
           database: "Database index audit",
@@ -845,7 +1130,7 @@
         },
         documentation: {
           outline: "Draft extended documentation outline",
-          guides: "Write initial how‑to guides",
+          guides: "Write initial how?to guides",
           review: "Editorial & technical review",
         },
       },
@@ -861,7 +1146,7 @@
     },
     stats: {
       totalArticles: { title: "Articles", hint: "Total published articles" },
-      views: { title: "Views", hint: "All‑time views" },
+      views: { title: "Views", hint: "All?time views" },
       thisWeek: { title: "This week", hint: "New this week" },
       popularTags: { title: "Popular tags" },
     },
@@ -872,7 +1157,7 @@
         options: {
           recent: "Most recent",
           popular: "Most viewed",
-          alphabetical: "A → Z",
+          alphabetical: "A �� Z",
           oldest: "Oldest",
         },
       },

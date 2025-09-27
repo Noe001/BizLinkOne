@@ -459,7 +459,7 @@ export default function Knowledge() {
                 onClick={() => handleArticleClick(article.id)}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-semibold text-green-800">#{index + 1}</span>
+                  <span className="inline-flex items-center justify-center min-h-[1.4rem] min-w-[1.5rem] rounded-md bg-green-800 text-white text-sm font-semibold">#{index + 1}</span>
                   <span className="text-sm text-muted-foreground flex items-center gap-1">
                     <Eye className="h-4 w-4" />
                     {article.views ?? 0}
