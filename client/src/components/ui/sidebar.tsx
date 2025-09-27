@@ -161,7 +161,18 @@ function SidebarProvider({
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
 
-  // Expose the setter globally to allow document-level listeners (used by SidebarRail) to update React state.
+  // Expose the setSidebarWidthPx function globally on window object to enable 
+  // cross-boundary React state updates from document-level event listeners.
+  // 
+  // Why this approach is necessary:
+  // 1. The sidebar resize functionality uses document-level 'pointermove' events
+  //    (see SidebarRail component) to track mouse movement across the entire viewport
+  // 2. Document-level listeners exist outside of React's component tree and cannot
+  //    directly access React Context or component state
+  // 3. This global bridge allows the document listeners to trigger React state updates
+  //    while maintaining proper state management and persistence
+  // 4. Alternative approaches like refs or callback props would be limited to component
+  //    boundaries and wouldn't work for document-level interactions
   React.useEffect(() => {
     try {
       ;(window as any).__setSidebarWidthPx = setSidebarWidthPx
@@ -386,13 +397,15 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       const side = (sidebarEl && sidebarEl.getAttribute('data-side')) || 'left'
       const newWidth = side === 'left' ? startWidthRef.current + dx : startWidthRef.current - dx
       const clamped = Math.max(SIDEBAR_MIN_PX, Math.min(SIDEBAR_MAX_PX, Math.round(newWidth)))
-      // use context setter if available so React state + persistence are updated
-      const ctx = (React as any).useContext ? null : null
+      
+      // Update React state via globally exposed function to maintain proper state management.
+      // This bridges the gap between document-level event handlers and React component state,
+      // ensuring that width changes are properly persisted and trigger React re-renders.
       const setWidthFromContext = (window as any).__setSidebarWidthPx as ((px:number)=>void) | undefined
       if (setWidthFromContext) {
         setWidthFromContext(clamped)
       } else {
-        // fallback: write to wrapper directly
+        // fallback: write to wrapper directly (bypasses React state management)
         wrapper.style.setProperty('--sidebar-width', `${clamped}px`)
       }
     }
