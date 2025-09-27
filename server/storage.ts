@@ -194,7 +194,10 @@ export class MemStorage implements IStorage {
     const existing = this.meetings.get(id);
     if (!existing) return undefined;
     
-    const updated: Meeting = { ...existing, ...updates };
+    // Merge participants safely: if updates.participants is provided, use a shallow copy; otherwise keep existing
+    const participants = updates.participants !== undefined ? (updates.participants ? [...updates.participants] : null) : existing.participants;
+
+    const updated: Meeting = { ...existing, ...updates, participants };
     this.meetings.set(id, updated);
     return updated;
   }

@@ -11,36 +11,46 @@ interface ChatMessageProps {
   userAvatar?: string;
   content: string;
   timestamp: Date;
+  channelId?: string;
   isOwn?: boolean;
+  isUnread?: boolean;
+  isFirstUnread?: boolean;
+  threadId?: string;
+  threadCount?: number;
+  lastThreadReply?: Date;
   canConvertToTask?: boolean;
   canConvertToKnowledge?: boolean;
-  onConvertToTask?: (messageId: string) => void;
-  onConvertToKnowledge?: (messageId: string) => void;
+  onRequestTaskCreation?: (messageId: string) => void;
+  onRequestKnowledgeCreation?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
+  onViewThread?: (messageId: string) => void;
 }
 
-export function ChatMessage({
-  id,
-  userId,
-  userName,
-  userAvatar,
-  content,
-  timestamp,
-  isOwn = false,
-  canConvertToTask = true,
-  canConvertToKnowledge = true,
-  onConvertToTask,
-  onConvertToKnowledge,
-  onReply,
-}: ChatMessageProps) {
+export function ChatMessage(props: ChatMessageProps) {
+  const {
+    id,
+    userName,
+    userAvatar,
+    content,
+    timestamp,
+    isOwn = false,
+    isUnread = false,
+    isFirstUnread = false,
+    threadCount = 0,
+    canConvertToTask = true,
+    canConvertToKnowledge = true,
+    onRequestTaskCreation,
+    onRequestKnowledgeCreation,
+    onReply,
+    onViewThread,
+  } = props;
+
   const handleConvertToTask = () => {
-    console.log(`Converting message ${id} to task`);
-    onConvertToTask?.(id);
+    onRequestTaskCreation?.(id);
   };
 
   const handleConvertToKnowledge = () => {
-    console.log(`Converting message ${id} to knowledge`);
-    onConvertToKnowledge?.(id);
+    onRequestKnowledgeCreation?.(id);
   };
 
   const handleReply = () => {
@@ -48,76 +58,121 @@ export function ChatMessage({
     onReply?.(id);
   };
 
+  const handleViewThread = () => {
+    console.log(`Viewing thread for message ${id}`);
+    onViewThread?.(id);
+  };
+
   return (
-    <div className={`group flex gap-3 p-4 hover-elevate ${isOwn ? 'flex-row-reverse' : ''}`} data-testid={`message-${id}`}>
-      <Avatar className="w-8 h-8 flex-shrink-0">
-        <AvatarImage src={userAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`} />
-        <AvatarFallback>
-          {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-      
-      <div className={`flex-1 min-w-0 ${isOwn ? 'text-right' : ''}`}>
-        <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'justify-end' : ''}`}>
-          <span className="font-medium text-sm">{userName}</span>
-          <span className="text-xs text-muted-foreground">
-            {formatDistanceToNow(timestamp, { addSuffix: true })}
-          </span>
-          {isOwn && <Badge variant="outline" className="text-xs">You</Badge>}
+    <>
+      {isFirstUnread && (
+        <div className="relative my-4 mx-2">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t-2 border-red-500"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-card px-4 text-sm font-medium text-red-500 uppercase tracking-wide">
+              New Messages
+            </span>
+          </div>
         </div>
+      )}
+
+      <div 
+        className={`group relative flex gap-3 p-2 mx-1 hover:bg-accent/20 rounded cursor-pointer ${
+          isUnread 
+            ? 'bg-card border-b border-card-border' 
+            : ''
+        } ${isOwn ? 'flex-row-reverse' : ''}`} 
+        data-testid={`message-${id}`}
+        onClick={threadCount > 0 ? handleViewThread : undefined}
+        role={threadCount > 0 ? "button" : undefined}
+        tabIndex={threadCount > 0 ? 0 : undefined}
+        onKeyDown={threadCount > 0 ? (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleViewThread();
+          }
+        } : undefined}
+      >
+        <Avatar className="w-8 h-8 flex-shrink-0 mt-0.5">
+          <AvatarImage src={userAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`} />
+          <AvatarFallback className="text-xs font-medium">
+            {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
         
-        <div className={`bg-card border border-card-border rounded-lg p-3 ${isOwn ? 'bg-cohere-blue-500 text-white border-cohere-blue-500' : ''}`}>
-          <p className="text-sm font-sans leading-relaxed">{content}</p>
-        </div>
-        
-        <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mt-2 ${isOwn ? 'justify-end' : ''}`}>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleReply}
-            data-testid={`button-reply-${id}`}
-            className="h-6 px-2 text-xs"
-          >
-            <Reply className="w-3 h-3 mr-1" />
-            Reply
-          </Button>
-          
-          {canConvertToTask && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleConvertToTask}
-              data-testid={`button-task-${id}`}
-              className="h-6 px-2 text-xs"
-            >
-              <CheckSquare className="w-3 h-3 mr-1" />
-              Task
-            </Button>
-          )}
-          
-          {canConvertToKnowledge && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleConvertToKnowledge}
-              data-testid={`button-knowledge-${id}`}
-              className="h-6 px-2 text-xs"
-            >
-              <BookOpen className="w-3 h-3 mr-1" />
-              Knowledge
-            </Button>
-          )}
-          
-          <Button
-            size="sm"
-            variant="ghost"
-            data-testid={`button-more-${id}`}
-            className="h-6 px-2 text-xs"
-          >
-            <MoreHorizontal className="w-3 h-3" />
-          </Button>
+        <div className={`flex-1 min-w-0 ${isOwn ? 'text-right' : ''}`}>
+          <div className={`flex items-baseline gap-2 mb-1 ${isOwn ? 'justify-end' : ''}`}>
+            <span className="font-semibold text-sm text-foreground">{userName}</span>
+            <span className="text-xs text-muted-foreground">
+              {formatDistanceToNow(timestamp, { addSuffix: true })}
+            </span>
+            {isOwn && <Badge variant="outline" className="text-xs">You</Badge>}
+
+            {/* controls: align to far right for non-own, keep on right for own */}
+            <div className={`${isOwn ? '' : 'ml-auto'} flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1`}>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleReply}
+                data-testid={`button-reply-${id}`}
+                className="h-8 px-4 rounded flex items-center gap-2 min-w-[88px] flex-shrink-0 whitespace-nowrap"
+                title="Reply to message"
+              >
+                <Reply className="w-4 h-4" />
+                <span className="text-xs text-muted-foreground hidden md:inline">Reply</span>
+                {threadCount > 0 && (
+                  <span className="text-xs font-medium text-muted-foreground ml-1">{threadCount}</span>
+                )}
+              </Button>
+
+              {canConvertToTask && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleConvertToTask}
+                  data-testid={`button-task-${id}`}
+                  className="h-8 px-3 rounded flex items-center gap-2 min-w-[80px] flex-shrink-0 whitespace-nowrap"
+                  title="Convert to task"
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  <span className="text-xs text-muted-foreground hidden md:inline">Task</span>
+                </Button>
+              )}
+
+              {canConvertToKnowledge && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleConvertToKnowledge}
+                  data-testid={`button-knowledge-${id}`}
+                  className="h-8 px-3 rounded flex items-center gap-2 min-w-[96px] flex-shrink-0 whitespace-nowrap"
+                  title="Convert to knowledge"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="text-xs text-muted-foreground hidden md:inline">Knowledge</span>
+                </Button>
+              )}
+
+              <Button
+                size="icon"
+                variant="ghost"
+                data-testid={`button-more-${id}`}
+                className="h-7 w-7"
+                title="More options"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className={`${isOwn ? 'text-right' : ''}`}>
+            <p className="text-sm leading-relaxed text-foreground m-0">{content}</p>
+          </div>
         </div>
       </div>
-    </div>
+
+    </>
   );
 }

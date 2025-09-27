@@ -28,6 +28,9 @@ import {
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
+const SIDEBAR_MIN_PX = 160
+const SIDEBAR_MAX_PX = 640
+const SIDEBAR_PERSIST_KEY = "sidebar_width_px"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -39,6 +42,7 @@ type SidebarContextProps = {
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
+  setSidebarWidthPx?: (px: number) => void
   toggleSidebar: () => void
 }
 
@@ -113,6 +117,36 @@ function SidebarProvider({
   // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed"
 
+  // State for dynamic width, initialize from localStorage if available
+  const getInitialWidth = React.useCallback(() => {
+    if (typeof window === "undefined") return SIDEBAR_WIDTH
+    try {
+      const saved = localStorage.getItem(SIDEBAR_PERSIST_KEY)
+      if (saved) return saved
+    } catch (e) {
+      // ignore
+    }
+    return SIDEBAR_WIDTH
+  }, [])
+
+  const [sidebarWidth, setSidebarWidth] = React.useState<string>(getInitialWidth)
+
+  // apply width to wrapper when state changes
+  useApplySidebarWidth(sidebarWidth)
+
+  const setSidebarWidthPx = React.useCallback((px: number) => {
+    const clamped = Math.max(SIDEBAR_MIN_PX, Math.min(SIDEBAR_MAX_PX, Math.round(px)))
+    const value = `${clamped}px`
+    setSidebarWidth(value)
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(SIDEBAR_PERSIST_KEY, value)
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [])
+
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
       state,
@@ -121,10 +155,32 @@ function SidebarProvider({
       isMobile,
       openMobile,
       setOpenMobile,
+      setSidebarWidthPx,
       toggleSidebar,
     }),
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
+
+  // Expose the setSidebarWidthPx function globally on window object to enable 
+  // cross-boundary React state updates from document-level event listeners.
+  // 
+  // Why this approach is necessary:
+  // 1. The sidebar resize functionality uses document-level 'pointermove' events
+  //    (see SidebarRail component) to track mouse movement across the entire viewport
+  // 2. Document-level listeners exist outside of React's component tree and cannot
+  //    directly access React Context or component state
+  // 3. This global bridge allows the document listeners to trigger React state updates
+  //    while maintaining proper state management and persistence
+  // 4. Alternative approaches like refs or callback props would be limited to component
+  //    boundaries and wouldn't work for document-level interactions
+  React.useEffect(() => {
+    try {
+      ;(window as any).__setSidebarWidthPx = setSidebarWidthPx
+    } catch (e) {}
+    return () => {
+      try { delete (window as any).__setSidebarWidthPx } catch (e) {}
+    }
+  }, [setSidebarWidthPx])
 
   return (
     <SidebarContext.Provider value={contextValue}>
@@ -132,11 +188,11 @@ function SidebarProvider({
         <div
           data-slot="sidebar-wrapper"
           style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH,
+            ({
+              "--sidebar-width": sidebarWidth,
               "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
               ...style,
-            } as React.CSSProperties
+            } as React.CSSProperties)
           }
           className={cn(
             "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
@@ -149,6 +205,30 @@ function SidebarProvider({
       </TooltipProvider>
     </SidebarContext.Provider>
   )
+}
+
+// Ensure persisted width value is applied to the wrapper when it changes (for other scripts)
+// Note: we keep state in the provider, but some drag updates write directly to wrapper.style.
+// This effect keeps them in sync on mount.
+function useSyncWrapperWidth() {
+  React.useEffect(() => {
+    const wrapper = document.querySelector('[data-slot="sidebar-wrapper"]') as HTMLElement | null
+    if (!wrapper) return
+    const style = getComputedStyle(wrapper)
+    const val = style.getPropertyValue('--sidebar-width') || ''
+    if (val) {
+      try { localStorage.setItem(SIDEBAR_PERSIST_KEY, val) } catch (e) {}
+    }
+  }, [])
+}
+
+// keep wrapper css var in sync from provider state
+function useApplySidebarWidth(sidebarWidth: string) {
+  React.useEffect(() => {
+    const wrapper = document.querySelector('[data-slot="sidebar-wrapper"]') as HTMLElement | null
+    if (!wrapper) return
+    wrapper.style.setProperty('--sidebar-width', sidebarWidth)
+  }, [sidebarWidth])
 }
 
 function Sidebar({
@@ -207,7 +287,7 @@ function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground hidden md:block"
+      className="margin-[0.5rem] group peer text-sidebar-foreground hidden md:block"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -218,7 +298,7 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-[var(--sidebar-width)] bg-transparent transition-[width] duration-200 ease-linear",
+          "relative w-[var(--sidebar-width)] bg-transparent",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -229,7 +309,7 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-[var(--sidebar-width)] transition-[left,right,width] duration-200 ease-linear md:flex",
+          "fixed inset-y-0 z-10 hidden h-svh w-[var(--sidebar-width)] transition-[left,right] md:flex",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -248,6 +328,8 @@ function Sidebar({
         >
           {children}
         </div>
+        {/* Invisible, thin rail overlapping the sidebar edge; cursor provides the affordance */}
+        <SidebarRail />
       </div>
     </div>
   )
@@ -280,24 +362,89 @@ function SidebarTrigger({
 }
 
 function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
-  const { toggleSidebar } = useSidebar()
+  // We implement a draggable resizer here. It updates the CSS variable --sidebar-width on the wrapper.
+  const startXRef = React.useRef<number | null>(null)
+  const startWidthRef = React.useRef<number | null>(null)
+  const draggingRef = React.useRef(false)
 
-  // Note: Tailwind v3.4 doesn't support "in-" selectors. So the rail won't work perfectly.
+  function getWrapper() {
+    return document.querySelector('[data-slot="sidebar-wrapper"]') as HTMLElement | null
+  }
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const wrapper = getWrapper()
+    if (!wrapper) return
+    draggingRef.current = true
+    // prevent text selection while dragging
+    document.body.style.userSelect = 'none'
+    document.body.style.pointerEvents = 'none'
+    startXRef.current = e.clientX
+    const style = getComputedStyle(wrapper)
+    const cur = style.getPropertyValue('--sidebar-width') || ''
+    const parsed = parseFloat(cur)
+    if (!isNaN(parsed)) {
+      startWidthRef.current = parsed
+    } else {
+      startWidthRef.current = wrapper.getBoundingClientRect().width
+    }
+
+    const onMove = (ev: PointerEvent) => {
+      if (startXRef.current == null || startWidthRef.current == null) return
+      const dx = ev.clientX - startXRef.current
+      const wrapper = getWrapper()
+      if (!wrapper) return
+      const sidebarEl = document.querySelector('[data-slot="sidebar"]') as HTMLElement | null
+      const side = (sidebarEl && sidebarEl.getAttribute('data-side')) || 'left'
+      const newWidth = side === 'left' ? startWidthRef.current + dx : startWidthRef.current - dx
+      const clamped = Math.max(SIDEBAR_MIN_PX, Math.min(SIDEBAR_MAX_PX, Math.round(newWidth)))
+      
+      // Update React state via globally exposed function to maintain proper state management.
+      // This bridges the gap between document-level event handlers and React component state,
+      // ensuring that width changes are properly persisted and trigger React re-renders.
+      const setWidthFromContext = (window as any).__setSidebarWidthPx as ((px:number)=>void) | undefined
+      if (setWidthFromContext) {
+        setWidthFromContext(clamped)
+      } else {
+        // fallback: write to wrapper directly (bypasses React state management)
+        wrapper.style.setProperty('--sidebar-width', `${clamped}px`)
+      }
+    }
+
+    const onUp = () => {
+      draggingRef.current = false
+      document.body.style.userSelect = ''
+      document.body.style.pointerEvents = ''
+      startXRef.current = null
+      startWidthRef.current = null
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+  }
+
+  // noop handlers to satisfy React typing when not using document-level listeners
+  const onPointerMove = (_e: React.PointerEvent) => {}
+  const onPointerUp = (_e: React.PointerEvent) => {}
+
   return (
     <button
       data-sidebar="rail"
       data-slot="sidebar-rail"
-      aria-label="Toggle Sidebar"
+      aria-label="Resize Sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      // no onClick - use drag
+      title="Drag to resize sidebar"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
       className={cn(
-        "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
-        "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
-        "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-        "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",
-        "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
-        "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+        // invisible thin rail positioned at the edge; cursor indicates resizability
+        "absolute inset-y-0 z-20 hidden w-2 sm:flex",
+        "group-data-[side=left]:right-0 group-data-[side=right]:left-0",
+        "cursor-col-resize",
         className
       )}
       {...props}

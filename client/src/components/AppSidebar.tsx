@@ -1,4 +1,5 @@
-import { MessageSquare, CheckSquare, BookOpen, Calendar, Settings, Hash, User, Users, Home, Plus } from "lucide-react";
+import * as React from "react";
+import { MessageSquare, CheckSquare, BookOpen, Calendar, Settings, Hash, User, Users, Home, Plus, ChevronDown, FolderOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,11 +11,13 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLocation, Link } from "wouter";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 // todo: remove mock functionality
 const mockChannels = [
@@ -31,14 +34,23 @@ const mockDirectMessages = [
 ];
 
 const mainNavItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
-  { title: "Knowledge", url: "/knowledge", icon: BookOpen },
-  { title: "Meetings", url: "/meetings", icon: Calendar },
+  { key: "nav.dashboard", testId: "dashboard", url: "/", icon: Home },
+  { key: "nav.projects", testId: "projects", url: "/projects", icon: FolderOpen },
+  { key: "nav.tasks", testId: "tasks", url: "/tasks", icon: CheckSquare },
+  { key: "nav.knowledge", testId: "knowledge", url: "/knowledge", icon: BookOpen },
+  { key: "nav.meetings", testId: "meetings", url: "/meetings", icon: Calendar },
 ];
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const [chatOpen, setChatOpen] = React.useState(true);
+  const [platformOpen, setPlatformOpen] = React.useState(true);
+  const [dmOpen, setDmOpen] = React.useState(true);
+  const [settingsOpen, setSettingsOpen] = React.useState(true);
+  const { state } = useSidebar();
+  const collapsed = state === 'collapsed';
+  
+  const { t } = useTranslation();
   
   const isActive = (url: string) => {
     if (url === "/") {
@@ -62,7 +74,7 @@ export function AppSidebar() {
           <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-md">
             <MessageSquare className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-lg">WorkflowHub</span>
+          <span className="font-semibold text-lg font-mono">WorkflowHub</span>
         </div>
       </SidebarHeader>
 
@@ -70,9 +82,9 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild data-testid={`nav-${item.title.toLowerCase()}`}>
+          {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild data-testid={`nav-${item.testId}`}>
                     <Link 
                       href={item.url} 
                       className="flex items-center py-0.5"
@@ -80,10 +92,10 @@ export function AppSidebar() {
                       data-active={isActive(item.url)}
                     >
                       {isActive(item.url) && (
-                        <div className="mr-3 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
+                        <div className="mr-3 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
                       )}
                       <item.icon className={isActive(item.url) ? "" : "mr-3"} />
-                      <span className="text-sm font-sans">{item.title}</span>
+                      <span className="text-sm font-sans">{t(item.key)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -92,91 +104,146 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Chat Section */}
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono text-primary">Channels</span>
-            <Button size="icon" variant="ghost" className="h-4 w-4" data-testid="button-add-channel">
-              <Plus className="h-3 w-3" />
-            </Button>
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mockChannels.map((channel) => (
-                <SidebarMenuItem key={channel.id}>
-                  <SidebarMenuButton asChild data-testid={`channel-${channel.name}`}>
-                    <Link 
-                      href={`/chat/channel/${channel.id}`} 
-                      className="flex items-center justify-between"
-                      aria-current={isActiveChannel(channel.id) ? "page" : undefined}
-                      data-active={isActiveChannel(channel.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isActiveChannel(channel.id) && (
-                          <div className="mr-1 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
-                        )}
-                        <Hash className={isActiveChannel(channel.id) ? "w-4 h-4" : "w-4 h-4 ml-3"} />
-                        <span>{channel.name}</span>
-                      </div>
-                      {channel.unread > 0 && (
-                        <Badge variant="secondary" className="h-5 text-xs" data-testid={`unread-${channel.name}`}>
-                          {channel.unread}
-                        </Badge>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild data-testid="nav-chat">
+                  <button 
+                    onClick={() => setChatOpen((s) => !s)} 
+                    className="flex items-center py-0.5 w-full text-left"
+                    data-active={false}
+                  >
+                    <MessageSquare className="mr-3 w-4 h-4" />
+                    <span className="text-sm font-sans">{t('nav.chat')}</span>
+                    <div className="ml-auto flex items-center gap-2">
+                      {/* badge should not block clicks on the header button */}
+                      <Badge variant="secondary" className="h-4 text-xs pointer-events-none">
+                        {mockChannels.reduce((acc, ch) => acc + ch.unread, 0) + mockDirectMessages.reduce((acc, dm) => acc + dm.unread, 0)}
+                      </Badge>
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${chatOpen ? '' : 'rotate-180'}`} />
+                    </div>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono text-primary">Direct Messages</span>
-            <Button size="icon" variant="ghost" className="h-4 w-4" data-testid="button-add-dm">
-              <Plus className="h-3 w-3" />
-            </Button>
-          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {mockDirectMessages.map((dm) => (
-                <SidebarMenuItem key={dm.id}>
-                  <SidebarMenuButton asChild data-testid={`dm-${dm.name}`}>
-                    <Link 
-                      href={`/chat/dm/${dm.id}`} 
-                      className="flex items-center justify-between"
-                      aria-current={isActiveDM(dm.id) ? "page" : undefined}
-                      data-active={isActiveDM(dm.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        {isActiveDM(dm.id) && (
-                          <div className="mr-1 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
-                        )}
-                        <div className={`relative ${isActiveDM(dm.id) ? '' : 'ml-3'}`}>
-                          <Avatar className="w-4 h-4">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${dm.name}`} />
-                            <AvatarFallback className="text-xs">
-                              {dm.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background ${
-                            dm.status === 'online' ? 'bg-status-online' : 
-                            dm.status === 'away' ? 'bg-status-away' : 
-                            'bg-status-offline'
-                          }`} />
-                        </div>
-                        <span className="text-sm">{dm.name}</span>
+            <div className={`${chatOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'} transition-all duration-300 overflow-hidden`}>
+              
+              {/* Platform Subsection */}
+              <SidebarGroup className="ml-2 mt-2">
+                <SidebarGroupLabel className="flex items-center justify-between">
+                  <button 
+                    onClick={() => setPlatformOpen((s) => !s)} 
+                    className="section-toggle flex items-center justify-between w-full text-left"
+                  >
+                    <span className="text-xs uppercase font-mono text-green-800">{t('nav.platform')}</span>
+                                          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${chatOpen ? '' : 'rotate-180'}`} />
+                  </button>
+                </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <div className={`${platformOpen ? 'max-h-screen' : 'max-h-0'} transition-all duration-300 overflow-hidden mt-2`}>
+                      <SidebarMenu>
+                        {mockChannels.map((channel) => (
+                          <SidebarMenuItem key={channel.id}>
+                            <SidebarMenuButton asChild data-testid={`channel-${channel.name}`}>
+                              <Link 
+                                href={`/chat/channel/${channel.id}`} 
+                                className="flex items-center justify-between"
+                                aria-current={isActiveChannel(channel.id) ? "page" : undefined}
+                                data-active={isActiveChannel(channel.id)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {isActiveChannel(channel.id) && (
+                                    <div className="mr-1 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
+                                  )}
+                                  <Hash className={isActiveChannel(channel.id) ? "w-4 h-4" : "w-4 h-4 ml-3"} />
+                                  <span className="sidebar-text font-mono">{channel.name}</span>
+                                </div>
+                                {channel.unread > 0 && (
+                                  <Badge variant="secondary" className="h-5 text-xs" data-testid={`unread-${channel.name}`}>
+                                    {channel.unread}
+                                  </Badge>
+                                )}
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                      <div className="mt-2">
+                        <Button size="sm" variant="ghost" className="w-full justify-center" data-testid="button-create-channel">
+                          <Plus className="mr-2 h-3 w-3" />
+                          {t('nav.createChannel')}
+                        </Button>
                       </div>
-                      {dm.unread > 0 && (
-                        <Badge variant="secondary" className="h-5 text-xs" data-testid={`unread-${dm.name}`}>
-                          {dm.unread}
-                        </Badge>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+                    </div>
+                  </SidebarGroupContent>
+              </SidebarGroup>
+
+              {/* Direct Messages Subsection */}
+              <SidebarGroup className="ml-2 mt-2">
+                <SidebarGroupLabel className="flex items-center justify-between">
+                  <button 
+                    onClick={() => setDmOpen((s) => !s)} 
+                    className="section-toggle flex items-center justify-between w-full text-left"
+                  >
+                    <span className="text-xs uppercase font-mono text-green-800">{t('nav.directMessages')}</span>
+                    <svg className={`w-4 h-4 text-green-800 transition-transform duration-300 ${dmOpen ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </button>
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <div className={`${dmOpen ? 'max-h-screen' : 'max-h-0'} transition-all duration-300 overflow-hidden mt-2`}>
+                    <SidebarMenu>
+                      {mockDirectMessages.map((dm) => (
+                        <SidebarMenuItem key={dm.id}>
+                          <SidebarMenuButton asChild data-testid={`dm-${dm.name}`}>
+                            <Link 
+                              href={`/chat/dm/${dm.id}`} 
+                              className="flex items-center justify-between"
+                              aria-current={isActiveDM(dm.id) ? "page" : undefined}
+                              data-active={isActiveDM(dm.id)}
+                            >
+                              <div className="flex items-center gap-2">
+                                {isActiveDM(dm.id) && (
+                                  <div className="mr-1 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
+                                )}
+                                <div className={`relative ${isActiveDM(dm.id) ? '' : 'ml-3'}`}>
+                                  <Avatar className="w-4 h-4">
+                                    <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${dm.name}`} />
+                                    <AvatarFallback className="text-xs">
+                                      {dm.name.split(' ').map(n => n[0]).join('')}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background ${
+                                    dm.status === 'online' ? 'bg-status-online' : 
+                                    dm.status === 'away' ? 'bg-status-away' : 
+                                    'bg-status-offline'
+                                  }`} />
+                                </div>
+                                <span className="sidebar-text font-mono">{dm.name}</span>
+                              </div>
+                              {dm.unread > 0 && (
+                                <Badge variant="secondary" className="h-5 text-xs" data-testid={`unread-${dm.name}`}>
+                                  {dm.unread}
+                                </Badge>
+                              )}
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                    <div className="mt-2">
+                      <Button size="sm" variant="ghost" className="w-full justify-center" data-testid="button-create-dm">
+                        <Plus className="mr-2 h-3 w-3" />
+                        {t('nav.newDm')}
+                      </Button>
+                    </div>
+                  </div>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </div>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
@@ -191,10 +258,10 @@ export function AppSidebar() {
                 data-active={isActive('/settings')}
               >
                 {isActive('/settings') && (
-                  <div className="mr-3 h-2 w-2 rounded-full bg-orange-500" data-testid="selection-indicator"></div>
+                  <div className="mr-3 h-2 w-2 rounded-full bg-green-800" data-testid="selection-indicator"></div>
                 )}
                 <Settings className={isActive('/settings') ? "" : "mr-3"} />
-                <span>Settings</span>
+                <span>{t('nav.settings')}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
