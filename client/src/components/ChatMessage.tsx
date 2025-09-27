@@ -79,12 +79,21 @@ export function ChatMessage(props: ChatMessageProps) {
       )}
 
       <div 
-        className={`group relative flex gap-3 p-2 mx-1 hover:bg-accent/20 rounded ${
+        className={`group relative flex gap-3 p-2 mx-1 hover:bg-accent/20 rounded cursor-pointer ${
           isUnread 
             ? 'bg-card border-b border-card-border' 
             : ''
         } ${isOwn ? 'flex-row-reverse' : ''}`} 
         data-testid={`message-${id}`}
+        onClick={threadCount > 0 ? handleViewThread : undefined}
+        role={threadCount > 0 ? "button" : undefined}
+        tabIndex={threadCount > 0 ? 0 : undefined}
+        onKeyDown={threadCount > 0 ? (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleViewThread();
+          }
+        } : undefined}
       >
         <Avatar className="w-8 h-8 flex-shrink-0 mt-0.5">
           <AvatarImage src={userAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`} />

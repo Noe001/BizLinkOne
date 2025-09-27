@@ -118,6 +118,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Use mock data for now - in real app, this would be API call
+  // TODO: Replace mockMessagesWithThreads with useQuery to fetch real messages from API
   const messages = isChannelContext 
     ? mockMessagesWithThreads.filter(msg => msg.channelId === (channelId as string)) 
     : [];

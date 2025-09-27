@@ -475,14 +475,15 @@ select {
 }
 
 /*
- * Disable additional focus outlines / focus box-shadows globally.
- * Note: this removes the browser / utility focus indicators for all elements.
- * If you want to keep keyboard-accessible focus styles while hiding mouse-focus
- * visuals, consider applying styles only to :focus:not(:focus-visible) or
- * creating a custom focus-visible style instead.
+ * Custom focus styles for keyboard navigation accessibility.
+ * Provide visible focus indicators while maintaining design consistency.
  */
-*:focus,
 *:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Hide focus outline for mouse users only */
+*:focus:not(:focus-visible) {
+  outline: none;
 }

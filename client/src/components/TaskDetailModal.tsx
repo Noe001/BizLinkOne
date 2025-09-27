@@ -112,9 +112,9 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdate, onTask
   if (!task) return null;
 
   const handleSaveEdit = () => {
+    if (!isEditing || !editData) return;
     onTaskUpdate(task.id, editData);
-    setIsEditing(false);
-    setEditData({});
+    // Don't reset local state immediately - wait for parent to re-render with updated props
   };
 
   const handleAddComment = () => {

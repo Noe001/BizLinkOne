@@ -442,6 +442,50 @@ export const en = {
         title: "Knowledge captured",
         message: "The summary is now saved in Knowledge.",
       },
+      title: "Notifications",
+      markAllRead: "Mark all read",
+      empty: "No notifications yet",
+      viewAll: "View all notifications",
+      types: {
+        task: {
+          dueSoon: "Task Due Soon",
+          reminder: "Task Reminder",
+          messages: {
+            dueSoon: "{{taskName}} is due in {{timeLeft}}",
+            reminder: "Don't forget about {{taskName}}"
+          }
+        },
+        meeting: {
+          starting: "Meeting Starting",
+          reminder: "Meeting Reminder",
+          messages: {
+            starting: "{{meetingName}} starts in {{timeLeft}}",
+            reminder: "{{meetingName}} is coming up"
+          }
+        },
+        message: {
+          new: "New Message",
+          mention: "You were mentioned",
+          messages: {
+            mention: "{{userName}} mentioned you in {{channelName}}",
+            new: "New message from {{userName}}"
+          }
+        },
+        knowledge: {
+          updated: "Knowledge Updated",
+          new: "New Knowledge",
+          messages: {
+            updated: "{{documentName}} has been updated",
+            new: "New knowledge article: {{documentName}}"
+          }
+        },
+        reminder: {
+          general: "Reminder",
+          messages: {
+            general: "Don't forget to review the security requirements"
+          }
+        },
+      },
     },
     header: {
       description: "Stay on top of conversations, tasks, and meetings in one place.",

@@ -24,13 +24,16 @@ interface Notification {
   sourceName?: string;
 }
 
-// Mock notifications
-const mockNotifications: Notification[] = [
+// Mock notifications - now uses translation keys
+const createMockNotifications = (t: (key: string, params?: any) => string): Notification[] => [
   {
     id: "notif-1",
     type: "task",
-    title: "Task Due Soon",
-    message: "Fix responsive design issues is due in 2 hours",
+    title: t("dashboard.notifications.types.task.dueSoon"),
+    message: t("dashboard.notifications.types.task.messages.dueSoon", { 
+      taskName: "Fix responsive design issues", 
+      timeLeft: "2 hours" 
+    }),
     timestamp: new Date(Date.now() - 1000 * 60 * 15),
     isRead: false,
     actionUrl: "/tasks",
@@ -40,8 +43,11 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-2",
     type: "meeting",
-    title: "Meeting Starting",
-    message: "Daily Standup starts in 30 minutes",
+    title: t("dashboard.notifications.types.meeting.starting"),
+    message: t("dashboard.notifications.types.meeting.messages.starting", { 
+      meetingName: "Daily Standup", 
+      timeLeft: "30 minutes" 
+    }),
     timestamp: new Date(Date.now() - 1000 * 60 * 5),
     isRead: false,
     actionUrl: "/meetings",
@@ -50,8 +56,11 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-3",
     type: "message",
-    title: "New Message",
-    message: "John Doe mentioned you in #development",
+    title: t("dashboard.notifications.types.message.new"),
+    message: t("dashboard.notifications.types.message.messages.mention", { 
+      userName: "John Doe", 
+      channelName: "#development" 
+    }),
     timestamp: new Date(Date.now() - 1000 * 60 * 30),
     isRead: false,
     actionUrl: "/chat/channel/development",
@@ -61,8 +70,10 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-4",
     type: "knowledge",
-    title: "Knowledge Updated",
-    message: "Authentication Setup Guide has been updated",
+    title: t("dashboard.notifications.types.knowledge.updated"),
+    message: t("dashboard.notifications.types.knowledge.messages.updated", { 
+      documentName: "Authentication Setup Guide" 
+    }),
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
     isRead: true,
     actionUrl: "/knowledge/kb-1",
@@ -72,8 +83,8 @@ const mockNotifications: Notification[] = [
   {
     id: "notif-5",
     type: "reminder",
-    title: "Task Reminder",
-    message: "Don't forget to review the security requirements",
+    title: t("dashboard.notifications.types.reminder.general"),
+    message: t("dashboard.notifications.types.reminder.messages.general"),
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
     isRead: true,
     actionUrl: "/tasks",
@@ -86,7 +97,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   const ctx = useContext(NotificationsContext);
   if (!ctx) {
     // If used outside of provider fall back to local mock state for resilience
-    const [notifications, setNotifications] = useState(mockNotifications);
+    const [notifications, setNotifications] = useState(() => createMockNotifications(t));
 
     const markAsRead = (notificationId: string) => {
       setNotifications(prev => 
@@ -232,7 +243,7 @@ export function NotificationContent({
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          <h3 className="font-semibold">{t('notifications.title')}</h3>
+          <h3 className="font-semibold">{t('dashboard.notifications.title')}</h3>
           {unreadCount > 0 && (
             <Badge variant="destructive" className="text-xs">
               {unreadCount}
@@ -247,7 +258,7 @@ export function NotificationContent({
               onClick={markAllAsRead}
               data-testid="mark-all-read"
             >
-              {t('notifications.markAllRead')}
+              {t('dashboard.notifications.markAllRead')}
             </Button>
           )}
           <Button size="sm" variant="ghost" onClick={onClose}>
@@ -260,7 +271,7 @@ export function NotificationContent({
         {notifications.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>{t('notifications.empty')}</p>
+            <p>{t('dashboard.notifications.empty')}</p>
           </div>
           ) : (
           notifications.map((notification: Notification) => (
@@ -297,7 +308,7 @@ export function NotificationContent({
                         <span>{formatDistanceToNow(notification.timestamp, { addSuffix: true, locale: dateLocale })}</span>
                         {notification.sourceName && (
                           <>
-                            <span>窶｢</span>
+                            <span>•</span>
                             <div className="flex items-center gap-1">
                               <User className="h-3 w-3" />
                               <span>{notification.sourceName}</span>
@@ -333,7 +344,7 @@ export function NotificationContent({
 
       <div className="p-4 border-t bg-muted/30">
         <Button variant="outline" className="w-full" size="sm">
-          {t('notifications.viewAll')}
+          {t('dashboard.notifications.viewAll')}
         </Button>
       </div>
     </>
@@ -353,7 +364,8 @@ interface NotificationsContextValue {
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const { t } = useTranslation();
+  const [notifications, setNotifications] = useState(() => createMockNotifications(t));
   const [isOpen, setIsOpen] = useState(false);
 
   const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => {

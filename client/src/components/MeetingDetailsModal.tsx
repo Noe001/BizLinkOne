@@ -91,6 +91,15 @@ export function MeetingDetailsModal({
   const [meetingNotes, setMeetingNotes] = useState(meeting.notes || "");
   const derivedLocale = locale ?? (language === "ja" ? jaLocale : undefined);
 
+  const handleAddDecision = () => {
+    if (newDecision.trim()) {
+      // In a real app, you would update the meeting object through a proper API call
+      // For now, we'll demonstrate the intended behavior
+      console.log("Adding decision:", newDecision.trim());
+      setNewDecision("");
+    }
+  };
+
   const handleAddActionItem = () => {
     if (newActionItem.trim()) {
       onCreateTask({
@@ -277,11 +286,11 @@ export function MeetingDetailsModal({
                     onChange={(event) => setNewDecision(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && newDecision.trim()) {
-                        setNewDecision("");
+                        handleAddDecision();
                       }
                     }}
                   />
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={handleAddDecision}>
                     {t("meetings.details.decisions.add")}
                   </Button>
                 </div>

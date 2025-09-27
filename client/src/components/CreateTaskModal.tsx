@@ -83,7 +83,7 @@ export function CreateTaskModal({
     dueDate: undefined,
     tags: [],
     relatedChatId: relatedChatId,
-    relatedMessageId: undefined,
+    relatedMessageId: undefined, // TODO: Pass messageId prop when available
     estimatedHours: undefined,
   });
 

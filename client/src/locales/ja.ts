@@ -442,6 +442,50 @@ export const ja = {
         title: "ナレッジを保存しました",
         message: "内容をナレッジベースに保存しました。",
       },
+      title: "通知",
+      markAllRead: "すべて既読にする",
+      empty: "通知はありません",
+      viewAll: "すべての通知を表示",
+      types: {
+        task: {
+          dueSoon: "タスク期限間近",
+          reminder: "タスクリマインダー",
+          messages: {
+            dueSoon: "{{taskName}}の期限まで{{timeLeft}}です",
+            reminder: "{{taskName}}をお忘れなく"
+          }
+        },
+        meeting: {
+          starting: "ミーティング開始",
+          reminder: "ミーティングリマインダー",
+          messages: {
+            starting: "{{meetingName}}が{{timeLeft}}で開始します",
+            reminder: "{{meetingName}}が予定されています"
+          }
+        },
+        message: {
+          new: "新しいメッセージ",
+          mention: "あなたがメンションされました",
+          messages: {
+            mention: "{{userName}}が{{channelName}}であなたにメンションしました",
+            new: "{{userName}}からの新しいメッセージ"
+          }
+        },
+        knowledge: {
+          updated: "ナレッジが更新されました",
+          new: "新しいナレッジ",
+          messages: {
+            updated: "{{documentName}}が更新されました",
+            new: "新しいナレッジ記事: {{documentName}}"
+          }
+        },
+        reminder: {
+          general: "リマインダー",
+          messages: {
+            general: "セキュリティ要件の確認をお忘れなく"
+          }
+        },
+      },
     },
     header: {
       description: "会話・タスク・ミーティングの状況をまとめて把握できます。",

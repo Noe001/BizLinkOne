@@ -140,7 +140,7 @@ export function AppSidebar() {
                     className="section-toggle flex items-center justify-between w-full text-left"
                   >
                     <span className="text-xs uppercase font-mono text-green-800">{t('nav.platform')}</span>
-                    <svg className={`w-4 h-4 text-green-800 transition-transform duration-300 ${platformOpen ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${chatOpen ? '' : 'rotate-180'}`} />
                   </button>
                 </SidebarGroupLabel>
                   <SidebarGroupContent>

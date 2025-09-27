@@ -99,12 +99,6 @@ function UnauthenticatedRouter() {
   );
 }
 
-function Router() {
-  const { isAuthenticated } = useAuth();
-  
-  return isAuthenticated ? <AuthenticatedRouter /> : <UnauthenticatedRouter />;
-}
-
 function AuthenticatedApp() {
   const { logout } = useAuth();
   const [, setLocation] = useLocation();
