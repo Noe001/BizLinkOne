@@ -296,11 +296,3 @@ export function CreateTaskModal({
     </Dialog>
   );
 }
-function setDescription(arg0: string) {
-  throw new Error("Function not implemented.");
-}
-
-function setAssigneeId(arg0: string) {
-  throw new Error("Function not implemented.");
-}
-

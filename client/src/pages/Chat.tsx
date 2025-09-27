@@ -6,11 +6,15 @@ import { Search, Hash, Users, Phone, Video, Settings, MessageSquare } from "luci
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatThread } from "@/components/ChatThread";
+import { NewTaskModal, type NewTaskData } from "@/components/NewTaskModal";
+import { CreateKnowledgeModal, type CreateKnowledgeData } from "@/components/CreateKnowledgeModal";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
 import { useState, useEffect, useRef } from "react";
+import type { MessageModalContext } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ChannelInfo {
   name: string;
@@ -23,7 +27,7 @@ interface ChannelInfo {
 const mockMessagesWithThreads = [
   {
     id: "msg-1",
-    userId: "user-1",
+    userId: "user-2",
     userName: "Alice Johnson",
     content: "Hey team, I've been working on the new authentication system. What do you think about implementing OAuth 2.0?",
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
@@ -34,7 +38,7 @@ const mockMessagesWithThreads = [
   },
   {
     id: "msg-2",
-    userId: "current-user",
+    userId: "user-1",
     userName: "You",
     content: "That sounds great! OAuth 2.0 would definitely improve our security posture. Have you considered which provider to use?",
     timestamp: new Date(Date.now() - 1000 * 60 * 60),
@@ -63,6 +67,9 @@ const mockMessagesWithThreads = [
   },
 ];
 
+type MockMessage = (typeof mockMessagesWithThreads)[number];
+type DisplayMessage = MockMessage & { isFirstUnread?: boolean };
+
 // Mock channel info until we have channels API
 const getChannelInfo = (channelId: string): ChannelInfo => {
   const channels: Record<string, ChannelInfo> = {
@@ -75,6 +82,10 @@ const getChannelInfo = (channelId: string): ChannelInfo => {
 };
 
 export default function Chat() {
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? "user-1";
+  const currentUserName = user?.name ?? "You";
+
   // Support both channel and DM routes
   const [matchType, paramsType] = useRoute("/chat/:type/:id");
   const [matchChannel, paramsChannel] = useRoute("/chat/channel/:channelId");
@@ -91,6 +102,9 @@ export default function Chat() {
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [threadMessages, setThreadMessages] = useState<any[]>([]);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
+
+  const [taskModalContext, setTaskModalContext] = useState<MessageModalContext | null>(null);
+  const [knowledgeModalContext, setKnowledgeModalContext] = useState<MessageModalContext | null>(null);
   
   // Close thread when switching channels
   useEffect(() => {
@@ -119,7 +133,7 @@ export default function Chat() {
   const firstUnreadIndex = filteredMessages.findIndex(message => message.isUnread);
   
   // Mark the first unread message
-  const messagesWithUnreadMarker = filteredMessages.map((message, index) => ({
+  const messagesWithUnreadMarker: DisplayMessage[] = filteredMessages.map((message, index) => ({
     ...message,
     isFirstUnread: message.isUnread && index === firstUnreadIndex
   }));
@@ -140,8 +154,8 @@ export default function Chat() {
     mutationFn: async (content: string) => {
       return apiRequest("POST", "/api/messages", {
         content,
-        userId: "current-user",
-        userName: "You",
+        userId: currentUserId,
+        userName: currentUserName,
         channelId,
         channelType: "channel"
       });
@@ -160,12 +174,58 @@ export default function Chat() {
     ? getChannelInfo(channelId as string) 
     : { name: contextId, description: "Direct message", memberCount: 2, isChannel: false };
 
-  const handleConvertToTask = (messageId: string) => {
-    console.log(`Converting message ${messageId} to task`);
+  const handleRequestTaskCreation = (messageId: string) => {
+    const message = messagesWithUnreadMarker.find(item => item.id === messageId);
+    if (!message) {
+      console.warn(`Unable to find message ${messageId} for task conversion.`);
+      return;
+    }
+
+    setTaskModalContext({
+      messageId,
+      content: message.content,
+      authorName: message.userName,
+      channelId: message.channelId,
+    });
   };
 
-  const handleConvertToKnowledge = (messageId: string) => {
-    console.log(`Converting message ${messageId} to knowledge`);
+  const handleTaskCreate = (taskData: NewTaskData) => {
+    if (!taskModalContext) {
+      return;
+    }
+
+    console.log("Creating task from message", {
+      messageId: taskModalContext.messageId,
+      taskData,
+    });
+    setTaskModalContext(null);
+  };
+
+  const handleRequestKnowledgeCreation = (messageId: string) => {
+    const message = messagesWithUnreadMarker.find(item => item.id === messageId);
+    if (!message) {
+      console.warn(`Unable to find message ${messageId} for knowledge conversion.`);
+      return;
+    }
+
+    setKnowledgeModalContext({
+      messageId,
+      content: message.content,
+      authorName: message.userName,
+      channelId: message.channelId,
+    });
+  };
+
+  const handleKnowledgeCreate = (knowledgeData: CreateKnowledgeData) => {
+    if (!knowledgeModalContext) {
+      return;
+    }
+
+    console.log("Creating knowledge article from message", {
+      messageId: knowledgeModalContext.messageId,
+      knowledgeData,
+    });
+    setKnowledgeModalContext(null);
   };
 
   const handleReply = (messageId: string) => {
@@ -199,8 +259,8 @@ export default function Chat() {
         },
         {
           id: `thread-${messageId}-2`,
-          userId: "current-user",
-          userName: "You",
+          userId: currentUserId,
+          userName: currentUserName,
           content: "Auth0 looks promising. What about the pricing?",
           timestamp: new Date(Date.now() - 1000 * 60 * 15),
           isOwn: true,
@@ -231,8 +291,8 @@ export default function Chat() {
     // Mock sending thread reply - in real app, this would be an API call
     const newReply = {
       id: `thread-${selectedThread}-${Date.now()}`,
-      userId: "current-user",
-      userName: "You",
+      userId: currentUserId,
+      userName: currentUserName,
       content,
       timestamp: new Date(),
       isOwn: true,
@@ -348,9 +408,9 @@ export default function Chat() {
                   key={message.id}
                   {...message}
                   channelId={channelId}
-                  isOwn={message.userId === "current-user"}
-                  onConvertToTask={handleConvertToTask}
-                  onConvertToKnowledge={handleConvertToKnowledge}
+                  isOwn={message.userId === currentUserId}
+                  onRequestTaskCreation={handleRequestTaskCreation}
+                  onRequestKnowledgeCreation={handleRequestKnowledgeCreation}
                   onReply={handleReply}
                   onViewThread={handleViewThread}
                 />
@@ -366,6 +426,27 @@ export default function Chat() {
           placeholder={`Message ${isChannelContext ? '#' + channelInfo.name : '@' + channelInfo.name}`}
           disabled={sendMessageMutation.isPending}
           onShareKnowledge={handleShareKnowledge}
+        />
+
+        <NewTaskModal
+          open={Boolean(taskModalContext)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setTaskModalContext(null);
+            }
+          }}
+          onTaskCreate={handleTaskCreate}
+          messageContent={taskModalContext?.content}
+          relatedChatId={taskModalContext?.channelId}
+        />
+
+        <CreateKnowledgeModal
+          isOpen={Boolean(knowledgeModalContext)}
+          onClose={() => setKnowledgeModalContext(null)}
+          onCreateKnowledge={handleKnowledgeCreate}
+          messageContent={knowledgeModalContext?.content}
+          messageAuthor={knowledgeModalContext?.authorName}
+          relatedChatId={knowledgeModalContext?.channelId}
         />
       </div>
 

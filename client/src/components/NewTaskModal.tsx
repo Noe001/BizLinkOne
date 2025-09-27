@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,17 +43,22 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
   const { t, language } = useTranslation();
   const locale = language === "ja" ? jaLocale : undefined;
 
-  const [formData, setFormData] = useState<NewTaskData>({
-    title: "",
-    description: messageContent,
-    status: "todo",
-    priority: "medium",
-    assigneeId: undefined,
-    dueDate: undefined,
-    tags: [],
-    relatedChatId,
-    estimatedHours: undefined,
-  });
+  const buildInitialFormData = useCallback(
+    (): NewTaskData => ({
+      title: "",
+      description: messageContent,
+      status: "todo",
+      priority: "medium",
+      assigneeId: undefined,
+      dueDate: undefined,
+      tags: [],
+      relatedChatId,
+      estimatedHours: undefined,
+    }),
+    [messageContent, relatedChatId]
+  );
+
+  const [formData, setFormData] = useState<NewTaskData>(buildInitialFormData);
 
   const [newTag, setNewTag] = useState("");
   const [errors, setErrors] = useState<Partial<Record<keyof NewTaskData | "tags", string>>>({});
@@ -91,21 +96,17 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
     return Object.keys(nextErrors).length === 0;
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      description: messageContent,
-      status: "todo",
-      priority: "medium",
-      assigneeId: undefined,
-      dueDate: undefined,
-      tags: [],
-      relatedChatId,
-      estimatedHours: undefined,
-    });
+  const resetForm = useCallback(() => {
+    setFormData(buildInitialFormData());
     setNewTag("");
     setErrors({});
-  };
+  }, [buildInitialFormData]);
+
+  useEffect(() => {
+    if (open) {
+      resetForm();
+    }
+  }, [open, resetForm]);
 
   const handleSubmit = async () => {
     if (!validateForm()) {

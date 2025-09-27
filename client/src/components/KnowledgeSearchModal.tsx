@@ -10,10 +10,10 @@ import { formatDistanceToNow } from "date-fns";
 interface KnowledgeSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectKnowledge: (knowledge: KnowledgeArticle) => void;
+  onSelectKnowledge: (knowledge: KnowledgeSearchArticle) => void;
 }
 
-interface KnowledgeArticle {
+export interface KnowledgeSearchArticle {
   id: string;
   title: string;
   content: string;
@@ -30,7 +30,7 @@ interface KnowledgeArticle {
 }
 
 // Mock knowledge articles
-const mockKnowledgeArticles: KnowledgeArticle[] = [
+const mockKnowledgeArticles: KnowledgeSearchArticle[] = [
   {
     id: "kb-1",
     title: "Authentication Setup Guide",
@@ -101,7 +101,7 @@ const mockKnowledgeArticles: KnowledgeArticle[] = [
 export function KnowledgeSearchModal({ isOpen, onClose, onSelectKnowledge }: KnowledgeSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchResults, setSearchResults] = useState<KnowledgeArticle[]>(mockKnowledgeArticles);
+  const [searchResults, setSearchResults] = useState<KnowledgeSearchArticle[]>(mockKnowledgeArticles);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -140,7 +140,7 @@ export function KnowledgeSearchModal({ isOpen, onClose, onSelectKnowledge }: Kno
 
   const categories = Array.from(new Set(mockKnowledgeArticles.map(article => article.category)));
 
-  const handleSelectArticle = (article: KnowledgeArticle) => {
+  const handleSelectArticle = (article: KnowledgeSearchArticle) => {
     onSelectKnowledge(article);
     onClose();
   };

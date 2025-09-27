@@ -1,8 +1,114 @@
-﻿export const ja = {
+export const ja = {
   language: {
     label: "言語",
     english: "英語",
     japanese: "日本語",
+  },
+  settings: {
+    header: {
+      description: "ワークスペースの設定と環境設定を管理します。",
+    },
+    tabs: {
+      general: "一般",
+      team: "チーム",
+      security: "セキュリティ",
+      billing: "請求",
+    },
+    actions: {
+      saveChanges: "変更を保存",
+    },
+    alert: {
+      unsaved: "未保存の変更があります。\n\"{{action}}\" をクリックして適用してください。",
+    },
+    general: {
+      workspaceInfo: {
+        title: "ワークスペース情報",
+        description: "ワークスペースレベルの設定と詳細を管理します。",
+      },
+      fields: {
+        name: "ワークスペース名",
+        domain: "ワークスペースドメイン",
+        description: "説明",
+        timezone: "タイムゾーン",
+        language: "言語",
+      },
+      timezones: {
+        et: "東部標準時 (US)",
+        ct: "中央標準時 (US)",
+        mt: "山岳標準時 (US)",
+        pt: "太平洋標準時 (US)",
+        gmt: "グリニッジ標準時",
+        cet: "中央ヨーロッパ時間",
+        jst: "日本標準時",
+      },
+      languages: {
+        en: "英語",
+        es: "スペイン語",
+        fr: "フランス語",
+        de: "ドイツ語",
+        ja: "日本語",
+      },
+      access: {
+        title: "アクセスと権限",
+        description: "ワークスペースへアクセスできる人と操作範囲を制御します。",
+        guestAccess: {
+          label: "ゲストアクセスを許可",
+          description: "招待されたゲストに閲覧やコメントを許可します（権限に応じて）。",
+        },
+      },
+    },
+    team: {
+      title: "チーム管理",
+      description: "ワークスペースのメンバーを招待・管理します。",
+      membersBadge: "{{count}} メンバー",
+      actions: {
+        inviteMembers: "メンバーを招待",
+        bulkInvite: "一括招待",
+      },
+      statuses: {
+        active: "アクティブ",
+        pending: "保留中",
+      },
+      roles: {
+        admin: "管理者",
+        manager: "マネージャー",
+        member: "メンバー",
+      },
+    },
+    security: {
+      title: "セキュリティ",
+      description: "ワークスペースのセキュリティ設定。",
+      requireTwoFactor: {
+        label: "二要素認証を必須にする",
+        description: "有効にすると全メンバーに2FAを要求します。",
+      },
+      sessionTimeout: {
+        label: "セッションのタイムアウト",
+        options: {
+          "15": "15分",
+          "30": "30分",
+          "60": "1時間",
+          "240": "4時間",
+          "480": "8時間",
+        },
+      },
+    },
+    billing: {
+      currentPlan: {
+        title: "現在のプラン",
+        description: "このワークスペースの請求とプラン情報。",
+        planLabel: "プラン",
+        seatsLabel: "シート数",
+        costLabel: "費用",
+      },
+      nextBilling: {
+        title: "次回の請求",
+      },
+      actions: {
+        changePlan: "プランを変更",
+        addSeats: "シートを追加",
+      },
+    },
   },
   common: {
     appName: "BizLinkOne",
@@ -46,6 +152,185 @@
     languageTag: {
       en: "EN",
       ja: "JA",
+    },
+  },
+  accountSettings: {
+    header: {
+      back: "戻る",
+      description: "個人のアカウント設定と各種環境設定を管理します。",
+    },
+    actions: {
+      saveChanges: "変更を保存",
+    },
+    alert: {
+      unsaved: "未保存の変更があります。「{{action}}」をクリックして適用してください。",
+    },
+    tabs: {
+      profile: "プロフィール",
+      notifications: "通知",
+      appearance: "外観",
+      security: "セキュリティとプライバシー",
+    },
+    profile: {
+      title: "プロフィール情報",
+      description: "個人情報と連絡先を更新します。",
+      avatar: {
+        memberSince: "メンバー登録日: {{date}}",
+        upload: "写真をアップロード",
+        remove: "削除",
+      },
+      fields: {
+        name: "氏名",
+        email: "メールアドレス",
+        department: "部署",
+        timezone: "タイムゾーン",
+      },
+      departments: {
+        engineering: "エンジニアリング",
+        design: "デザイン",
+        marketing: "マーケティング",
+        sales: "セールス",
+        support: "サポート",
+        humanResources: "人事",
+      },
+    },
+    notifications: {
+      email: {
+        title: "メール通知",
+        description: "メール通知を受け取るタイミングを設定します。",
+        items: {
+          mentions: {
+            label: "メンション",
+            description: "メッセージであなたが言及されたとき",
+          },
+          directMessages: {
+            label: "ダイレクトメッセージ",
+            description: "ダイレクトメッセージを受信したとき",
+          },
+          taskAssignments: {
+            label: "タスク割り当て",
+            description: "タスクを割り当てられたとき",
+          },
+          meetingReminders: {
+            label: "会議リマインダー",
+            description: "予定された会議のリマインダー",
+          },
+          weeklyDigest: {
+            label: "週間サマリー",
+            description: "1週間のアクティビティ概要",
+          },
+        },
+      },
+      push: {
+        title: "プッシュ通知",
+        description: "リアルタイムのプッシュ通知を設定します。",
+        items: {
+          mentions: {
+            label: "メンション",
+            description: "メンションの即時通知",
+          },
+          directMessages: {
+            label: "ダイレクトメッセージ",
+            description: "DMの即時通知",
+          },
+          taskDeadlines: {
+            label: "タスク期限",
+            description: "迫っているタスク期限の通知",
+          },
+          meetingStart: {
+            label: "会議開始",
+            description: "会議開始時の通知",
+          },
+        },
+      },
+    },
+    appearance: {
+      title: "テーマと表示設定",
+      description: "ワークスペースの見た目や表示方法をカスタマイズします。",
+      themeLabel: "テーマモード",
+      themes: {
+        light: "ライトモード",
+        dark: "ダークモード",
+        system: "システムに合わせる",
+      },
+      accentLabel: "アクセントカラー",
+      colors: {
+        blue: "青",
+        green: "緑",
+        purple: "紫",
+        red: "赤",
+        orange: "オレンジ",
+        yellow: "黄",
+        pink: "ピンク",
+        indigo: "インディゴ",
+      },
+      options: {
+        compactMode: {
+          label: "コンパクトモード",
+          description: "余白とパディングを減らし、よりコンパクトなインターフェースにします。",
+        },
+        sidebarCollapsed: {
+          label: "サイドバーを初期状態で折りたたむ",
+          description: "アプリを開いた際にサイドバーを折りたたんだ状態で表示します。",
+        },
+      },
+    },
+    security: {
+      title: "パスワードと認証",
+      description: "アカウントのセキュリティと認証方法を管理します。",
+      currentPassword: {
+        label: "現在のパスワード",
+        description: "最終変更日: 3か月前",
+      },
+      changePassword: "パスワードを変更",
+      twoFactor: {
+        label: "二要素認証",
+        description: "アカウントに追加のセキュリティ層を追加します",
+        enabled: "有効",
+      },
+      sessions: {
+        title: "アクティブなセッション",
+        current: {
+          label: "現在のセッション",
+          description: "Windows 上の Chrome ・ ニューヨーク",
+          status: "アクティブ",
+        },
+        mobile: {
+          label: "モバイルアプリ",
+          description: "iOS ・ 最終アクセス 2時間前",
+          action: "取り消す",
+        },
+      },
+      privacy: {
+        title: "プライバシー設定",
+        description: "情報の共有方法と表示方法を管理します。",
+        profileVisibility: {
+          label: "プロフィールの公開範囲",
+          description: "プロフィール情報を表示できる範囲",
+          options: {
+            everyone: "全員",
+            team: "チームのみ",
+            private: "非公開",
+          },
+        },
+        showOnlineStatus: {
+          label: "オンライン状況を表示",
+          description: "オンライン状態を他のメンバーに知らせます",
+        },
+        shareActivity: {
+          label: "アクティビティステータスを共有",
+          description: "作業中の内容をチームに共有します",
+        },
+        dataAnalytics: {
+          title: "データと分析",
+          usageAnalytics: {
+            label: "利用状況分析",
+            description: "利用データを共有してプラットフォーム改善に協力します",
+          },
+          download: "データをダウンロード",
+          delete: "アカウントを削除",
+        },
+      },
     },
   },
   auth: {
@@ -108,10 +393,10 @@
       teamSizeLabel: "チーム人数",
       teamSizePlaceholder: "人数を選択",
       teamSizeOptions: {
-        "1-5": "1〜5人",
-        "6-15": "6〜15人",
-        "16-50": "16〜50人",
-        "51-100": "51〜100人",
+        "1-5": "1?5人",
+        "6-15": "6?15人",
+        "16-50": "16?50人",
+        "51-100": "51?100人",
         "100+": "100人以上",
       },
       createWorkspace: "ワークスペースを作成",
@@ -308,7 +593,7 @@
         done: "完了",
       },
       due: {
-        today: "本日が期限 · {{date}}",
+        today: "本日が期限 ・ {{date}}",
         future: "期限 {{date}} (あと {{days}} 日)",
         past: "期限切れ {{date}} ({{days}} 日前)",
       },
@@ -325,7 +610,7 @@
         titleRequired: "件名は必須です。",
         titleTooShort: "件名は3文字以上で入力してください。",
         descriptionTooLong: "説明は2000文字以内で入力してください。",
-        estimateRange: "見積もり時間は0〜999の範囲で入力してください。",
+        estimateRange: "見積もり時間は0?999の範囲で入力してください。",
         tagLimit: "タグは最大5個まで追加できます。",
       },
       fields: {
@@ -789,7 +1074,7 @@
       log: "プロジェクトを作成:",
     },
     tasks: {
-      heading: "プロジェクトタスク – {{project}}",
+      heading: "プロジェクトタスク ? {{project}}",
       progress: "進捗: {{value}}%",
       empty: "プロジェクトを選択するとタスクが表示されます",
     },
