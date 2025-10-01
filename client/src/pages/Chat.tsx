@@ -1,3 +1,4 @@
+import { KNOWLEDGE_ROUTE_BASE } from "@/constants/commands";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -11,10 +12,13 @@ import { CreateKnowledgeModal, type CreateKnowledgeData } from "@/components/Cre
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { matchFaq, type FaqEntry } from "@/data/faqs";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { MessageModalContext } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspaceData } from "@/contexts/WorkspaceDataContext";
+import { toast } from "@/hooks/use-toast";
 
 interface ChannelInfo {
   name: string;
@@ -23,52 +27,19 @@ interface ChannelInfo {
   isChannel: boolean;
 }
 
-// Mock data with thread and unread support
-const mockMessagesWithThreads = [
-  {
-    id: "msg-1",
-    userId: "user-2",
-    userName: "Alice Johnson",
-    content: "Hey team, I've been working on the new authentication system. What do you think about implementing OAuth 2.0?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    channelId: "development",
-    threadCount: 3,
-    lastThreadReply: new Date(Date.now() - 1000 * 60 * 30),
-    isUnread: false,
-  },
-  {
-    id: "msg-2",
-    userId: "user-1",
-    userName: "You",
-    content: "That sounds great! OAuth 2.0 would definitely improve our security posture. Have you considered which provider to use?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60),
-    channelId: "development",
-    isUnread: false,
-  },
-  {
-    id: "msg-3",
-    userId: "user-2",
-    userName: "Bob Smith",
-    content: "I just pushed the latest updates to the API. The new endpoints are ready for testing. Can someone review the PR?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    channelId: "development",
-    threadCount: 1,
-    lastThreadReply: new Date(Date.now() - 1000 * 60 * 15),
-    isUnread: true,
-  },
-  {
-    id: "msg-4",
-    userId: "user-3",
-    userName: "Carol Wilson",
-    content: "The client meeting went well! They approved the design mockups. I'll update the project board with the feedback.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 15),
-    channelId: "development",
-    isUnread: true,
-  },
-];
-
-type MockMessage = (typeof mockMessagesWithThreads)[number];
-type DisplayMessage = MockMessage & { isFirstUnread?: boolean };
+interface DisplayMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  content: string;
+  channelId: string | null;
+  timestamp: Date;
+  isOwn: boolean;
+  isUnread: boolean;
+  threadCount?: number;
+  lastThreadReply?: Date;
+  isFirstUnread?: boolean;
+}
 
 // Mock channel info until we have channels API
 const getChannelInfo = (channelId: string): ChannelInfo => {
@@ -85,6 +56,7 @@ export default function Chat() {
   const { user } = useAuth();
   const currentUserId = user?.id ?? "user-1";
   const currentUserName = user?.name ?? "You";
+  const { createTask: createWorkspaceTask, createKnowledge: createWorkspaceKnowledge } = useWorkspaceData();
 
   // Support both channel and DM routes
   const [matchType, paramsType] = useRoute("/chat/:type/:id");
@@ -112,18 +84,56 @@ export default function Chat() {
       setSelectedThread(null);
       setThreadMessages([]);
     }
+    unreadCutoffRef.current = new Date(Date.now() - 30 * 60 * 1000);
   }, [channelId]);
   
   // Ref for auto-scrolling
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const unreadCutoffRef = useRef<Date>(new Date(Date.now() - 30 * 60 * 1000));
   
-  // Use mock data for now - in real app, this would be API call
-  // TODO: Replace mockMessagesWithThreads with useQuery to fetch real messages from API
-  const messages = isChannelContext 
-    ? mockMessagesWithThreads.filter(msg => msg.channelId === (channelId as string)) 
-    : [];
-  
-  // Apply filters and identify first unread message
+  const messagesQueryKey = useMemo(() => {
+    if (isChannelContext) {
+      return ["chatMessages", "channel", channelId ?? "general"];
+    }
+    return ["chatMessages", "conversation", contextId];
+  }, [isChannelContext, channelId, contextId]);
+
+  const { data: rawMessages = [], isLoading: isLoadingMessages, isError: isMessagesError } = useQuery<ChatMessageType[]>({
+    queryKey: messagesQueryKey,
+    queryFn: async () => {
+      const querySuffix = isChannelContext && channelId ? `?channelId=${channelId}` : "";
+      const response = await fetch(`/api/messages${querySuffix}`, { credentials: "include" });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || response.statusText);
+      }
+      return (await response.json()) as ChatMessageType[];
+    },
+  });
+
+  const messages = useMemo<DisplayMessage[]>(() => {
+    const unreadCutoff = unreadCutoffRef.current;
+    return rawMessages
+      .map((message): DisplayMessage => {
+        const timestamp = new Date(message.timestamp);
+        const isOwn = message.userId === currentUserId;
+        const isUnread = !isOwn && timestamp > unreadCutoff;
+        return {
+          id: message.id,
+          userId: message.userId,
+          userName: message.userName,
+          content: message.content,
+          channelId: message.channelId ?? null,
+          timestamp,
+          isOwn,
+          isUnread,
+          threadCount: 0,
+        };
+      })
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }, [rawMessages, currentUserId]);
+
+// Apply filters and identify first unread message
   const filteredMessages = messages.filter(message => {
     if (showUnreadOnly && !message.isUnread) return false;
     if (showThreadsOnly && !message.threadCount) return false;
@@ -139,16 +149,10 @@ export default function Chat() {
     isFirstUnread: message.isUnread && index === firstUnreadIndex
   }));
 
-  // Debug: Log message information
-  console.log('Current channelId:', channelId);
-  console.log('All messages:', messages.length);
-  console.log('Filtered messages:', filteredMessages.length);
-  console.log('Messages with unread marker:', messagesWithUnreadMarker.length);
-
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messagesWithUnreadMarker.length]);
+  }, [messages.length]);
   
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -157,18 +161,62 @@ export default function Chat() {
         content,
         userId: currentUserId,
         userName: currentUserName,
-        channelId,
-        channelType: "channel"
+        channelId: channelId ?? null,
+        channelType: isChannelContext ? "channel" : "dm"
       });
     },
     onSuccess: () => {
-      // Invalidate and refetch messages for this channel
-      queryClient.invalidateQueries({ queryKey: ["/api/messages", `?channelId=${channelId}`] });
+      queryClient.invalidateQueries({ queryKey: ["chatMessages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    },
+    onError: (error: unknown) => {
+      const description = error instanceof Error ? error.message : 'Please try again.';
+      toast({
+        title: "Failed to send message",
+        description,
+        variant: "destructive",
+      });
     },
   });
   
+  const handleFaqResponse = useCallback(async (faq: FaqEntry) => {
+    const responseContent = `FAQ Answer: ${faq.question}
+
+${faq.answer}` +
+      (faq.relatedKnowledgeId ? `
+
+Knowledge: ${KNOWLEDGE_ROUTE_BASE}/${faq.relatedKnowledgeId}` : "");
+    try {
+      await apiRequest("POST", "/api/messages", {
+        content: responseContent,
+        userId: "biz-assistant",
+        userName: "Biz Assistant",
+        channelId: channelId ?? null,
+        channelType: isChannelContext ? "channel" : "dm",
+      });
+      toast({
+        title: "Shared quick answer",
+        description: faq.question,
+      });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : "Please try again.";
+      toast({
+        title: "Failed to share FAQ",
+        description,
+        variant: "destructive",
+      });
+    }
+  }, [channelId, isChannelContext, toast]);
+
   const handleSendMessage = (content: string) => {
-    sendMessageMutation.mutate(content);
+    const faqMatch = matchFaq(content);
+    sendMessageMutation.mutate(content, {
+      onSuccess: () => {
+        if (faqMatch) {
+          handleFaqResponse(faqMatch);
+        }
+      },
+    });
   };
   
   const channelInfo = isChannelContext 
@@ -186,7 +234,7 @@ export default function Chat() {
       messageId,
       content: message.content,
       authorName: message.userName,
-      channelId: message.channelId,
+      channelId: message.channelId ?? undefined,
     });
   };
 
@@ -195,9 +243,23 @@ export default function Chat() {
       return;
     }
 
-    console.log("Creating task from message", {
-      messageId: taskModalContext.messageId,
-      taskData,
+    createWorkspaceTask({
+      ...taskData,
+      origin: {
+        source: "chat",
+        referenceId: taskModalContext.messageId,
+        referenceLabel: channelInfo.name,
+      },
+      messageContext: {
+        messageId: taskModalContext.messageId,
+        content: taskModalContext.content,
+        authorName: taskModalContext.authorName,
+      },
+    });
+
+    toast({
+      title: "Task created",
+      description: `Converted message into task "${taskData.title}"`,
     });
     setTaskModalContext(null);
   };
@@ -213,7 +275,7 @@ export default function Chat() {
       messageId,
       content: message.content,
       authorName: message.userName,
-      channelId: message.channelId,
+      channelId: message.channelId ?? undefined,
     });
   };
 
@@ -222,27 +284,56 @@ export default function Chat() {
       return;
     }
 
-    console.log("Creating knowledge article from message", {
-      messageId: knowledgeModalContext.messageId,
-      knowledgeData,
+    createWorkspaceKnowledge({
+      ...knowledgeData,
+      authorId: currentUserId,
+      authorName: currentUserName,
+      source: "chat",
+    });
+
+    toast({
+      title: "Knowledge published",
+      description: `Saved "${knowledgeData.title}" to the knowledge base`,
     });
     setKnowledgeModalContext(null);
   };
 
   const handleReply = (messageId: string) => {
-    console.log(`Replying to message ${messageId}`);
     setSelectedThread(messageId);
     loadThreadMessages(messageId);
   };
 
   const handleViewThread = (messageId: string) => {
-    console.log(`Viewing thread for message ${messageId}`);
     setSelectedThread(messageId);
     loadThreadMessages(messageId);
   };
 
-  const handleShareKnowledge = (knowledgeId: string, title: string, summary: string) => {
-    console.log(`Shared knowledge article: ${title} (${knowledgeId})`);
+  const handleShareKnowledge = async (knowledgeId: string, title: string, summary: string) => {
+    const message = `Knowledge share: ${title}
+
+${summary}
+
+${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
+    try {
+      await apiRequest("POST", "/api/messages", {
+        content: message,
+        userId: currentUserId,
+        userName: currentUserName,
+        channelId: channelId ?? null,
+        channelType: isChannelContext ? "channel" : "dm",
+      });
+      toast({
+        title: "Article shared",
+        description: `Posted "${title}" to this chat`,
+      });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : "Please try again.";
+      toast({
+        title: "Failed to share article",
+        description,
+        variant: "destructive",
+      });
+    }
   };
 
   const loadThreadMessages = async (messageId: string) => {
@@ -287,7 +378,6 @@ export default function Chat() {
   const handleSendThreadReply = async (content: string) => {
     if (!selectedThread) return;
     
-    console.log(`Sending thread reply to ${selectedThread}: ${content}`);
     
     // Mock sending thread reply - in real app, this would be an API call
     const newReply = {
@@ -392,7 +482,21 @@ export default function Chat() {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto bg-card" data-testid="messages-container">
           <div className="py-2">
-            {messagesWithUnreadMarker.length === 0 ? (
+            {isLoadingMessages ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2 animate-pulse" />
+                  <div className="text-muted-foreground">Loading messages...</div>
+                </div>
+              </div>
+            ) : isMessagesError ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <div className="text-muted-foreground">Failed to load messages.</div>
+                </div>
+              </div>
+            ) : messagesWithUnreadMarker.length === 0 ? (
               <div className="flex items-center justify-center h-32">
                 <div className="text-center">
                   <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -408,8 +512,8 @@ export default function Chat() {
                 <ChatMessage
                   key={message.id}
                   {...message}
-                  channelId={channelId}
-                  isOwn={message.userId === currentUserId}
+                  channelId={message.channelId ?? channelId}
+                  isOwn={message.isOwn}
                   onRequestTaskCreation={handleRequestTaskCreation}
                   onRequestKnowledgeCreation={handleRequestKnowledgeCreation}
                   onReply={handleReply}
@@ -472,3 +576,8 @@ export default function Chat() {
     </div>
   );
 }
+
+
+
+
+

@@ -398,6 +398,17 @@
     background-color: var(--elevate-2);
   }
 
+  /* Slower pulse used for "Live" tags to be less visually aggressive */
+  @keyframes livePulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.98); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .animate-live-slow {
+    animation: livePulse 2.2s ease-in-out infinite;
+  }
+
   /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,

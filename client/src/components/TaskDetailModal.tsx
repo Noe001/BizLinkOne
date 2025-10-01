@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { TaskStatus, TaskPriority } from "./TaskCard";
+import { useWorkspaceData } from "@/contexts/WorkspaceDataContext";
+import { useLocation } from "wouter";
 
 interface TaskDetailModalProps {
   open: boolean;
@@ -57,6 +59,8 @@ export interface TaskDetailData {
   tags: string[];
   relatedChatId?: string;
   relatedMeetingId?: string;
+  projectId?: string;
+  projectName?: string;
   subtasks: SubTask[];
   comments: TaskComment[];
   timeEntries: TimeEntry[];
@@ -108,8 +112,25 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdate, onTask
   const [newComment, setNewComment] = useState("");
   const [newSubtask, setNewSubtask] = useState("");
   const [newTimeEntry, setNewTimeEntry] = useState({ description: "", hours: "" });
+  const { getChannelById, getMeetingById } = useWorkspaceData();
+  const [, setLocation] = useLocation();
 
   if (!task) return null;
+
+  const channel = task.relatedChatId ? getChannelById(task.relatedChatId) : undefined;
+  const meeting = task.relatedMeetingId ? getMeetingById(task.relatedMeetingId) : undefined;
+
+  const handleOpenChatContext = () => {
+    if (!task.relatedChatId) return;
+    setLocation(`/chat/channel/${task.relatedChatId}`);
+    onOpenChange(false);
+  };
+
+  const handleOpenMeetingContext = () => {
+    if (!task.relatedMeetingId) return;
+    setLocation("/meetings");
+    onOpenChange(false);
+  };
 
   const handleSaveEdit = () => {
     if (!isEditing || !editData) return;
@@ -372,6 +393,47 @@ export function TaskDetailModal({ open, onOpenChange, task, onTaskUpdate, onTask
                           </Badge>
                         ))}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {(task.relatedChatId || task.relatedMeetingId) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4" />
+                        Related Context
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {task.relatedChatId && (
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">#{channel?.name ?? task.relatedChatId}</p>
+                              <p className="text-xs text-muted-foreground">Chat channel</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={handleOpenChatContext}>
+                            Open chat
+                          </Button>
+                        </div>
+                      )}
+                      {task.relatedMeetingId && (
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{meeting?.title ?? task.relatedMeetingId}</p>
+                              <p className="text-xs text-muted-foreground">Meeting record</p>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={handleOpenMeetingContext}>
+                            View meeting
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}

@@ -2,39 +2,18 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BookOpen, MessageSquare, Share2, MoreHorizontal } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { BookOpen, MessageSquare, Share2, MoreHorizontal, Edit, Trash2, Copy, Archive, Star } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ja as jaLocale } from "date-fns/locale";
 import { useTranslation } from "@/contexts/LanguageContext";
-
-const tagColors: Record<string, string> = {
-  authentication: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
-  security: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
-  jwt: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
-  backend: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800",
-  api: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800",
-  documentation: "bg-card text-card-foreground border-card-border dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800",
-  standards: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800",
-  guidelines: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800",
-  deployment: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800",
-  devops: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800",
-  production: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
-  ciCd: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
-  testing: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
-  database: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-800",
-  schema: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-800",
-  design: "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800",
-  performance: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
-  sql: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-800",
-  frontend: "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800",
-  components: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800",
-  ui: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800",
-  react: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
-  designSystem: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800",
-  bestPractices: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800",
-  compliance: "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800",
-  vulnerabilities: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800",
-};
+import { getTagColor } from "@/utils/tagColors";
 
 interface KnowledgeTagDisplay {
   id: string;
@@ -57,6 +36,12 @@ interface KnowledgeCardProps {
   relatedChatId?: string;
   onClick?: (knowledgeId: string) => void;
   onShare?: (knowledgeId: string) => void;
+  onEdit?: (knowledgeId: string) => void;
+  onDelete?: (knowledgeId: string) => void;
+  onDuplicate?: (knowledgeId: string) => void;
+  onArchive?: (knowledgeId: string) => void;
+  onToggleFavorite?: (knowledgeId: string) => void;
+  isFavorite?: boolean;
 }
 
 export function KnowledgeCard({
@@ -71,6 +56,12 @@ export function KnowledgeCard({
   relatedChatId,
   onClick,
   onShare,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  onArchive,
+  onToggleFavorite,
+  isFavorite = false,
 }: KnowledgeCardProps) {
   const { t, language } = useTranslation();
   const locale = language === "ja" ? jaLocale : undefined;
@@ -89,30 +80,82 @@ export function KnowledgeCard({
 
   return (
     <Card
-      className="hover-elevate cursor-pointer group h-full"
+      className="hover-elevate cursor-pointer group h-full transition-all duration-200 hover:shadow-lg"
       onClick={handleCardClick}
       data-testid={`knowledge-card-${id}`}
+      aria-label={`${title} - ${authorName}`}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <BookOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <h3 className="font-medium text-sm leading-tight truncate" data-testid={`knowledge-title-${id}`}>
-              {title}
-            </h3>
+      <CardHeader className="pb-4">
+          <div className="flex items-start justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <BookOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <h3 className="font-semibold text-sm sm:text-base leading-tight truncate" data-testid={`knowledge-title-${id}`}>
+                {title}
+              </h3>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 opacity-50 group-hover:opacity-100 hover:bg-accent transition-all duration-150 sm:opacity-40"
+                  data-testid={`knowledge-more-${id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={t("knowledge.card.actions.menu")}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {onEdit && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(id); }}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    <span>{t("knowledge.card.actions.edit")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onToggleFavorite && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleFavorite(id); }}>
+                    <Star className={`mr-2 h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                    <span>{isFavorite ? t("knowledge.card.actions.unfavorite") : t("knowledge.card.actions.favorite")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onDuplicate && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(id); }}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    <span>{t("knowledge.card.actions.duplicate")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onShare && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(id); }}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    <span>{t("knowledge.card.actions.share")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(id); }}>
+                      <Archive className="mr-2 h-4 w-4" />
+                      <span>{t("knowledge.card.actions.archive")}</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={(e) => { e.stopPropagation(); onDelete(id); }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>{t("knowledge.card.actions.delete")}</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100"
-            data-testid={`knowledge-more-${id}`}
-          >
-            <MoreHorizontal className="h-3 w-3" />
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="pt-0">
+        </CardHeader>      <CardContent className="pt-0">
         {excerpt && (
           <p className="text-xs text-muted-foreground mb-3 line-clamp-3" data-testid={`knowledge-excerpt-${id}`}>
             {excerpt}
@@ -125,9 +168,7 @@ export function KnowledgeCard({
               <Badge
                 key={tag.id}
                 variant="outline"
-                className={`h-5 text-xs ${
-                  tagColors[tag.id] || "bg-card text-card-foreground border-card-border dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800"
-                }`}
+                className={`h-5 text-xs ${getTagColor(tag.id)}`}
               >
                 {tag.label}
               </Badge>

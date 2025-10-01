@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { X, Send, MoreHorizontal } from "lucide-react";
 import { ChatInput } from "@/components/ChatInput";
 import { formatDistanceToNow } from "date-fns";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 interface ThreadMessage {
   id: string;
@@ -39,6 +40,7 @@ export function ChatThread({
   onSendReply, 
   isLoading = false 
 }: ChatThreadProps) {
+  const { t } = useTranslation();
   // Use shared ChatInput for reply behaviour to match main input
 
   return (
@@ -108,7 +110,8 @@ export function ChatThread({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
+                    className="h-6 w-6 opacity-50 group-hover:opacity-100 hover:bg-accent transition-all duration-150 ml-auto"
+                    aria-label={t("chat.message.actions.messageActions")}
                   >
                     <MoreHorizontal className="h-3 w-3" />
                   </Button>

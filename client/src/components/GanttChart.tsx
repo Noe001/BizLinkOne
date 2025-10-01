@@ -63,15 +63,15 @@ export function GanttChart({ tasks, onTaskClick, onTaskUpdate }: GanttChartProps
   const getStatusColor = (status: string) => {
     switch (status) {
       case "todo":
-        return "bg-gray-200 text-gray-800";
+        return "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
       case "in-progress":
-        return "bg-blue-200 text-blue-800";
+        return "bg-blue-200 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300";
       case "review":
-        return "bg-yellow-200 text-yellow-800";
+        return "bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300";
       case "done":
-        return "bg-green-200 text-green-800";
+        return "bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-300";
       default:
-        return "bg-gray-200 text-gray-800";
+        return "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
   };
 
@@ -217,13 +217,27 @@ export function GanttChart({ tasks, onTaskClick, onTaskUpdate }: GanttChartProps
                       <div className="col-span-8 relative h-8 flex items-center">
                         {position ? (
                           <div
-                            className={`absolute h-6 rounded-md shadow-sm border-l-4 ${getPriorityColor(task.priority)} ${
+                            className={`absolute h-6 rounded-md shadow-sm border-l-4 ${
+                              getPriorityColor(task.priority)
+                            } ${
                               selectedTask === task.id ? "ring-2 ring-primary" : ""
-                            } ${getStatusColor(task.status)} cursor-pointer transition-all hover:shadow-md`}
+                            } ${
+                              getStatusColor(task.status)
+                            } cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105`}
                             style={{ left: position.left, width: position.width }}
                             onClick={() => {
                               setSelectedTask(task.id);
                               onTaskClick?.(task.id);
+                            }}
+                            role="button"
+                            aria-label={t("projects.timeline.taskLabel", { title: task.title, progress: task.progress })}
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setSelectedTask(task.id);
+                                onTaskClick?.(task.id);
+                              }
                             }}
                           >
                             <div className="px-2 py-1 flex items-center justify-between h-full">

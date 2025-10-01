@@ -197,7 +197,7 @@ export function ChatInput({
                 onClick={handleSend}
                 disabled={!message.trim() || disabled}
                 data-testid="button-send-message"
-                className="h-7 w-7 bg-cohere-green-700 hover:bg-cohere-blue-800"
+                className="h-7 w-7 bg-green-600 hover:bg-blue-600 dark:bg-green-700 dark:hover:bg-blue-700 transition-colors duration-200"
               >
                 <Send className="h-6 w-6 text-white" />
               </Button>

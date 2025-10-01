@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,7 +48,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
-          className={collapsed ? "p-2 h-auto w-auto" : "w-full justify-start p-2 h-auto hover:bg-accent px-3"}
+          className={collapsed ? "p-2 h-auto w-auto transition-all duration-150 hover:scale-105" : "w-full justify-start p-2 h-auto hover:bg-accent px-3 transition-all duration-150"}
           data-testid="user-profile-dropdown"
         >
           {collapsed ? (
@@ -59,7 +59,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                   {mockUser.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-background" />
+              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background animate-pulse" />
             </div>
           ) : (
             <div className="flex items-center gap-3 w-full">
@@ -70,7 +70,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                     {mockUser.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-background" />
+                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background animate-pulse" />
               </div>
               
               <div className="flex-1 min-w-0 text-left">
@@ -83,7 +83,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                 <p className="text-xs text-muted-foreground truncate">{mockUser.email}</p>
               </div>
               
-              <Settings className="h-4 w-4 text-muted-foreground" />
+              <Settings className="h-4 w-4 text-muted-foreground transition-transform duration-150 group-hover:rotate-90" />
             </div>
           )}
         </Button>

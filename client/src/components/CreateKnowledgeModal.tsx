@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, X, Plus } from "lucide-react";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 interface CreateKnowledgeModalProps {
   isOpen: boolean;
@@ -55,6 +56,7 @@ export function CreateKnowledgeModal({
   messageAuthor = "",
   relatedChatId
 }: CreateKnowledgeModalProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(messageContent);
   const [summary, setSummary] = useState("");
@@ -131,25 +133,27 @@ export function CreateKnowledgeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto" data-testid="create-knowledge-modal">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="create-knowledge-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            Create Knowledge Article from Message
+            {t("knowledge.create.title")}
           </DialogTitle>
           <DialogDescription>
-            {messageAuthor && (
-              <>Convert message from <span className="font-medium">{messageAuthor}</span> into a knowledge article.</>
+            {messageAuthor ? (
+              t("knowledge.create.descriptionWithAuthor", { author: messageAuthor })
+            ) : (
+              t("knowledge.create.description")
             )}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="knowledge-title">Title *</Label>
+            <Label htmlFor="knowledge-title">{t("knowledge.create.fields.title")} *</Label>
             <Input
               id="knowledge-title"
-              placeholder="Enter article title..."
+              placeholder={t("knowledge.create.fields.titlePlaceholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -158,10 +162,10 @@ export function CreateKnowledgeModal({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="knowledge-summary">Summary</Label>
+            <Label htmlFor="knowledge-summary">{t("knowledge.create.fields.summary")}</Label>
             <Input
               id="knowledge-summary"
-              placeholder="Brief summary (optional - will be auto-generated if empty)"
+              placeholder={t("knowledge.create.fields.summaryPlaceholder")}
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               data-testid="knowledge-summary-input"
@@ -169,10 +173,10 @@ export function CreateKnowledgeModal({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="knowledge-content">Content *</Label>
+            <Label htmlFor="knowledge-content">{t("knowledge.create.fields.content")} *</Label>
             <Textarea
               id="knowledge-content"
-              placeholder="Article content..."
+              placeholder={t("knowledge.create.fields.contentPlaceholder")}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={8}
@@ -182,7 +186,7 @@ export function CreateKnowledgeModal({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="knowledge-category">Category</Label>
+            <Label htmlFor="knowledge-category">{t("knowledge.create.fields.category")}</Label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger data-testid="knowledge-category-select">
                 <SelectValue placeholder="Select category" />
@@ -198,7 +202,7 @@ export function CreateKnowledgeModal({
           </div>
 
           <div className="grid gap-2">
-            <Label>Tags</Label>
+            <Label>{t("knowledge.create.fields.tags")}</Label>
             
             {/* Selected tags */}
             {tags.length > 0 && (
@@ -228,7 +232,7 @@ export function CreateKnowledgeModal({
             {/* Add new tag */}
             <div className="flex gap-2">
               <Input
-                placeholder="Add custom tag..."
+                placeholder={t("knowledge.create.fields.tagPlaceholder")}
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 onKeyPress={handleTagKeyPress}
@@ -247,7 +251,7 @@ export function CreateKnowledgeModal({
 
             {/* Common tags */}
             <div className="flex flex-wrap gap-1 mt-2">
-              <span className="text-sm text-muted-foreground mr-2">Quick add:</span>
+              <span className="text-sm text-muted-foreground mr-2">{t("knowledge.create.fields.quickAdd")}:</span>
               {commonTags.filter(tag => !tags.includes(tag)).slice(0, 10).map((tag) => (
                 <Button
                   key={tag}
@@ -266,10 +270,10 @@ export function CreateKnowledgeModal({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={!title.trim() || !content.trim()} data-testid="create-knowledge-button">
-              Create Article
+              {t("knowledge.create.create")}
             </Button>
           </DialogFooter>
         </form>

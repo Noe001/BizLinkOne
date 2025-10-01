@@ -42,6 +42,7 @@ export interface CreateMeetingData {
 const durationOptions = [15, 30, 60, 90, 120] as const;
 const platformOptions = ["zoom", "meet", "teams", "other"] as const;
 const recurringOptions = ["daily", "weekly", "monthly"] as const;
+const NO_CHANNEL_VALUE = "__no_channel__";
 
 export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateMeetingModalProps) {
   const { t, language } = useTranslation();
@@ -53,7 +54,7 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
   const [platform, setPlatform] = useState<CreateMeetingData["platform"]>("zoom");
   const [platformUrl, setPlatformUrl] = useState("");
   const [participants, setParticipants] = useState<string[]>([]);
-  const [relatedChatId, setRelatedChatId] = useState("");
+  const [relatedChatId, setRelatedChatId] = useState<string | undefined>(undefined);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringPattern, setRecurringPattern] = useState<CreateMeetingData["recurringPattern"]>("weekly");
   const [sendReminders, setSendReminders] = useState(true);
@@ -81,7 +82,7 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
       platform,
       platformUrl: platformUrl.trim() || undefined,
       participants,
-      relatedChatId: relatedChatId || undefined,
+  relatedChatId,
       isRecurring,
       recurringPattern: isRecurring ? recurringPattern : undefined,
       sendReminders,
@@ -101,7 +102,7 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
     setPlatform("zoom");
     setPlatformUrl("");
     setParticipants([]);
-    setRelatedChatId("");
+  setRelatedChatId(undefined);
     setIsRecurring(false);
     setRecurringPattern("weekly");
     setSendReminders(true);
@@ -129,7 +130,7 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto" data-testid="create-meeting-modal">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="create-meeting-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Video className="h-5 w-5" />
@@ -318,12 +319,15 @@ export function CreateMeetingModal({ isOpen, onClose, onCreateMeeting }: CreateM
 
           <div className="grid gap-2">
             <Label htmlFor="related-chat">{t("meetings.create.form.channelLabel")}</Label>
-            <Select value={relatedChatId} onValueChange={setRelatedChatId}>
+            <Select
+              value={relatedChatId ?? NO_CHANNEL_VALUE}
+              onValueChange={(value) => setRelatedChatId(value === NO_CHANNEL_VALUE ? undefined : value)}
+            >
               <SelectTrigger data-testid="related-chat-select">
                 <SelectValue placeholder={t("meetings.create.form.channelPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{t("meetings.create.form.channelNone")}</SelectItem>
+                <SelectItem value={NO_CHANNEL_VALUE}>{t("meetings.create.form.channelNone")}</SelectItem>
                 {sampleChannels.map((channel) => (
                   <SelectItem key={channel.id} value={channel.id}>
                     #{channel.name}

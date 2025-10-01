@@ -1,5 +1,5 @@
-﻿import { useMemo, useState } from "react";
-import { addDays } from "date-fns";
+import { addDays, differenceInHours, subDays } from "date-fns";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,18 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Search, Plus, Filter } from "lucide-react";
+import { GanttChart } from "@/components/GanttChart";
 import { TaskCard, type TaskStatus, type TaskPriority } from "@/components/TaskCard";
 import { NewTaskModal, type NewTaskData } from "@/components/NewTaskModal";
 import { TaskDetailModal, type TaskDetailData } from "@/components/TaskDetailModal";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useTranslation } from "@/contexts/LanguageContext";
-import {
-  createSampleTasksData,
-  hydrateTaskForList,
-  hydrateTaskDetail,
-  type TaskSeed,
-  type TaskDetailSeed,
-  type TaskStateLike,
-} from "@/data/tasks";
+import { hydrateTaskForList, hydrateTaskDetail } from "@/data/tasks";
+import { projectDetailSeeds } from "@/data/projects/seeds";
+import { useWorkspaceData } from "@/contexts/WorkspaceDataContext";
+import { useNotifications } from "@/components/NotificationPanel";
+import { toast } from "@/hooks/use-toast";
 
 interface TaskListItem {
   id: string;
@@ -34,44 +33,34 @@ interface TaskListItem {
   dueDate?: Date;
   relatedChatId?: string;
   relatedMeetingId?: string;
+  projectId?: string;
+  projectName?: string;
   tags?: string[];
   estimatedHours?: number;
 }
 
-const referenceDate = new Date();
-const sampleData = createSampleTasksData(referenceDate);
-const seedMap = new Map<string, TaskSeed>(sampleData.seeds.map((seed) => [seed.id, seed]));
-const detailMap = sampleData.details as Record<string, TaskDetailSeed | undefined>;
-
-const initializeState = (): TaskStateLike[] => {
-  return sampleData.seeds.map((seed) => ({
-    id: seed.id,
-    title: seed.title,
-    description: seed.description,
-    status: seed.status,
-    priority: seed.priority,
-    assigneeId: seed.assigneeId,
-    dueDate: seed.dueInDays !== undefined ? addDays(referenceDate, seed.dueInDays) : undefined,
-    relatedChatId: seed.relatedChatId,
-    relatedMeetingId: seed.relatedMeetingId,
-    tags: seed.tags,
-    estimatedHours: seed.estimatedHours,
-    createdAt: addDays(referenceDate, -7),
-    updatedAt: referenceDate,
-  }));
-};
-
 export default function Tasks() {
   const { t } = useTranslation();
+  const { addNotification } = useNotifications();
+  const notifiedTaskIdsRef = useRef(new Set<string>());
 
-  const [taskStates, setTaskStates] = useState<TaskStateLike[]>(initializeState);
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const {
+    tasks: taskStates,
+    createTask: createWorkspaceTask,
+    updateTask: updateWorkspaceTask,
+    deleteTask: deleteWorkspaceTask,
+    referenceDate,
+    getParticipantById,
+  } = useWorkspaceData();
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "gantt">("kanban");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [selectedTask, setSelectedTask] = useState<TaskDetailData | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const statusOptionLabels = useMemo(
     () => ({
@@ -95,9 +84,31 @@ export default function Tasks() {
     [t]
   );
 
+  const projectOptions = useMemo(() => {
+    return [
+      { id: "all", name: t("tasks.filters.project.options.all") },
+      ...projectDetailSeeds.map((seed) => ({ id: seed.id, name: t(seed.nameKey) })),
+    ];
+  }, [t]);
+
+  const projectNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    projectDetailSeeds.forEach((seed) => {
+      map.set(seed.id, t(seed.nameKey));
+    });
+    return map;
+  }, [t]);
+
   const hydratedTasks = useMemo(() => {
-    return taskStates.map((task) => hydrateTaskForList({ task, translate: t }));
-  }, [taskStates, t]);
+    return taskStates.map((task) => {
+      const hydrated = hydrateTaskForList({ task, translate: t });
+      return {
+        ...hydrated,
+        projectId: task.projectId,
+        projectName: task.projectId ? projectNameMap.get(task.projectId) ?? task.projectId : undefined,
+      };
+    });
+  }, [taskStates, t, projectNameMap]);
 
   const filteredTasks = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -108,6 +119,10 @@ export default function Tasks() {
       }
 
       if (filterPriority !== "all" && task.priority !== filterPriority) {
+        return false;
+      }
+
+      if (projectFilter !== "all" && task.projectId !== projectFilter) {
         return false;
       }
 
@@ -127,7 +142,7 @@ export default function Tasks() {
 
       return true;
     });
-  }, [hydratedTasks, filterStatus, filterPriority, searchQuery]);
+  }, [hydratedTasks, filterStatus, filterPriority, projectFilter, searchQuery]);
 
   const statusColumns = useMemo(
     () => [
@@ -142,113 +157,184 @@ export default function Tasks() {
   const getTasksByStatus = (status: TaskStatus) => {
     return filteredTasks.filter((task) => task.status === status);
   };
+  const ganttTasks = useMemo(() => {
+    return filteredTasks.map((task) => {
+      const endDate = task.dueDate ?? addDays(referenceDate, 1);
+      const startDate = task.dueDate ? subDays(task.dueDate, 3) : addDays(referenceDate, -1);
+      const progressByStatus: Record<TaskStatus, number> = {
+        todo: 15,
+        'in-progress': 55,
+        review: 80,
+        done: 100,
+      };
+
+      return {
+        id: task.id,
+        title: task.title,
+        startDate,
+        endDate,
+        progress: progressByStatus[task.status],
+        status: task.status,
+        assignee: task.assignee,
+        project: task.projectName ?? t("tasks.gantt.unknownProject"),
+        priority: task.priority,
+      };
+    });
+  }, [filteredTasks, referenceDate, t]);
+  useEffect(() => {
+    const now = new Date();
+    taskStates.forEach((task) => {
+      if (!task.dueDate || task.status === "done") {
+        if (notifiedTaskIdsRef.current.has(task.id)) {
+          notifiedTaskIdsRef.current.delete(task.id);
+        }
+        return;
+      }
+      const hoursUntilDue = differenceInHours(task.dueDate, now);
+      if (hoursUntilDue <= 24 && hoursUntilDue >= 0 && !notifiedTaskIdsRef.current.has(task.id)) {
+        const assignee = task.assigneeId ? getParticipantById(task.assigneeId) : undefined;
+        const taskTitle = task.title ?? t("tasks.notifications.dueSoon.fallbackTitle");
+        addNotification({
+          type: "task",
+          title: t("tasks.notifications.dueSoon.title", { title: taskTitle }),
+          message: t("tasks.notifications.dueSoon.message", { title: taskTitle, hours: Math.max(1, Math.round(hoursUntilDue)) }),
+          actionUrl: "/tasks",
+          sourceId: task.id,
+          ...(assignee ? { sourceName: assignee.name } : {}),
+        });
+        notifiedTaskIdsRef.current.add(task.id);
+      }
+      if (hoursUntilDue < 0 && notifiedTaskIdsRef.current.has(task.id)) {
+        notifiedTaskIdsRef.current.delete(task.id);
+      }
+    });
+  }, [taskStates, addNotification, t, getParticipantById]);
+
+
 
   const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
-    setTaskStates((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, status: newStatus, updatedAt: new Date() } : task))
-    );
+    updateWorkspaceTask(taskId, { status: newStatus });
   };
 
   const handleTaskClick = (taskId: string) => {
-    const overrides = taskStates.find((task) => task.id === taskId);
-    if (!overrides) {
+    const exists = taskStates.some((task) => task.id === taskId);
+    if (!exists) {
       return;
     }
 
-    const seed = seedMap.get(taskId);
-    const extras = detailMap[taskId];
-    const detail = hydrateTaskDetail({
-      seed,
-      overrides,
-      extras,
-      translate: t,
-      referenceDate,
-    });
-
     setSelectedTaskId(taskId);
-    setSelectedTask(detail);
   };
 
   const handleCreateTask = (data: NewTaskData) => {
-    const id = `task-${Date.now()}`;
-    const newTask: TaskStateLike = {
-      id,
-      title: data.title,
-      description: data.description,
-      status: data.status,
-      priority: data.priority,
-      assigneeId: data.assigneeId,
-      dueDate: data.dueDate,
-      tags: data.tags,
-      relatedChatId: data.relatedChatId,
-      estimatedHours: data.estimatedHours,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    setTaskStates((prev) => [newTask, ...prev]);
-  };
-
-  const handleTaskUpdate = (taskId: string, updates: Partial<TaskDetailData>) => {
-    const now = new Date();
-
-    setTaskStates((prev) =>
-      prev.map((task) => {
-        if (task.id !== taskId) {
-          return task;
-        }
-
-        return {
-          ...task,
-          title: updates.title ?? task.title,
-          description: updates.description ?? task.description,
-          status: (updates.status as TaskStatus | undefined) ?? task.status,
-          priority: (updates.priority as TaskPriority | undefined) ?? task.priority,
-          assigneeId: updates.assignee?.id ?? task.assigneeId,
-          dueDate: updates.dueDate ?? task.dueDate,
-          tags: updates.tags ?? task.tags,
-          estimatedHours: updates.estimatedHours ?? task.estimatedHours,
-          actualHours: updates.actualHours ?? task.actualHours,
-          subtasks: updates.subtasks ?? task.subtasks,
-          comments: updates.comments ?? task.comments,
-          timeEntries: updates.timeEntries ?? task.timeEntries,
-          updatedAt: now,
-        } satisfies TaskStateLike;
-      })
-    );
-
-    setSelectedTask((current) => {
-      if (!current || current.id !== taskId) {
-        return current;
-      }
-
-      return {
-        ...current,
-        ...updates,
-        assignee: updates.assignee ?? current.assignee,
-        tags: updates.tags ?? current.tags,
-        comments: updates.comments ?? current.comments,
-        subtasks: updates.subtasks ?? current.subtasks,
-        timeEntries: updates.timeEntries ?? current.timeEntries,
-        status: (updates.status as TaskStatus | undefined) ?? current.status,
-        priority: (updates.priority as TaskPriority | undefined) ?? current.priority,
-        dueDate: updates.dueDate ?? current.dueDate,
-        estimatedHours: updates.estimatedHours ?? current.estimatedHours,
-        actualHours: updates.actualHours ?? current.actualHours,
-        updatedAt: now,
-      };
+    createWorkspaceTask({
+      ...data,
+      origin: { source: "manual" },
     });
   };
 
-  const handleTaskDelete = (taskId: string) => {
-    setTaskStates((prev) => prev.filter((task) => task.id !== taskId));
-    setSelectedTaskId(null);
-    setSelectedTask(null);
+  const handleTaskUpdate = (taskId: string, updates: Partial<TaskDetailData>) => {
+    updateWorkspaceTask(taskId, updates);
   };
+
+  const handleTaskDelete = (taskId: string) => {
+    const task = taskStates.find((t) => t.id === taskId);
+    if (task) {
+      setTaskToDelete({ id: taskId, title: task.title ?? taskId });
+      setDeleteConfirmOpen(true);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (taskToDelete) {
+      deleteWorkspaceTask(taskToDelete.id);
+      setSelectedTaskId((current) => (current === taskToDelete.id ? null : current));
+      toast({
+        title: t("tasks.notifications.deleted.title"),
+        description: t("tasks.notifications.deleted.message", { title: taskToDelete.title }),
+      });
+      setTaskToDelete(null);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
+  const handleTaskEdit = (taskId: string) => {
+    setSelectedTaskId(taskId);
+  };
+
+  const handleTaskDuplicate = (taskId: string) => {
+    const task = taskStates.find((t) => t.id === taskId);
+    if (task) {
+      createWorkspaceTask({
+        title: `${task.title} (Copy)`,
+        description: task.description || "",
+        status: task.status,
+        priority: task.priority,
+        assigneeId: task.assigneeId,
+        dueDate: task.dueDate,
+        projectId: task.projectId,
+        relatedChatId: task.relatedChatId,
+        relatedMeetingId: task.relatedMeetingId,
+        tags: task.tags || [],
+        estimatedHours: task.estimatedHours,
+        origin: { source: "manual" },
+      });
+      toast({
+        title: t("tasks.notifications.duplicated.title"),
+        description: t("tasks.notifications.duplicated.message"),
+      });
+    }
+  };
+
+  const handleTaskArchive = (taskId: string) => {
+    // TODO: Implement archive functionality
+    toast({
+      title: t("tasks.notifications.archived.title"),
+      description: t("tasks.notifications.archived.message"),
+    });
+  };
+
+  const handleTaskShare = (taskId: string) => {
+    // TODO: Implement share functionality
+    toast({
+      title: t("tasks.notifications.shared.title"),
+      description: t("tasks.notifications.shared.message"),
+    });
+  };
+
+  const handleToggleFavorite = (taskId: string) => {
+    // TODO: Implement favorite functionality
+    toast({
+      title: t("tasks.notifications.favorited.title"),
+      description: t("tasks.notifications.favorited.message"),
+    });
+  };
+
+  const selectedTaskState = useMemo(() => {
+    if (!selectedTaskId) {
+      return null;
+    }
+
+    return taskStates.find((task) => task.id === selectedTaskId) ?? null;
+  }, [taskStates, selectedTaskId]);
+
+  const selectedTaskDetail = useMemo(() => {
+    if (!selectedTaskState) {
+      return null;
+    }
+
+    return hydrateTaskDetail({
+      seed: undefined,
+      overrides: selectedTaskState,
+      extras: undefined,
+      translate: t,
+      referenceDate,
+    });
+  }, [selectedTaskState, t, referenceDate]);
 
   const clearFilters = () => {
     setFilterStatus("all");
     setFilterPriority("all");
+    setProjectFilter("all");
     setSearchQuery("");
   };
 
@@ -257,7 +343,7 @@ export default function Tasks() {
 
   return (
     <div className="p-6" data-testid="page-tasks">
-      {/* ラップを追加し space-y-6 の対象要素からカンバン部を分離 */}
+      {/* ラチEEを追加ぁEspace-y-6 の対象要素からカンバン部をE離 */}
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <p className="text-muted-foreground">{t("tasks.header.description")}</p>
@@ -312,8 +398,20 @@ export default function Tasks() {
                   <SelectItem value="low">{priorityOptionLabels.low}</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger className="w-full sm:w-40 h-8" data-testid="filter-project">
+                  <SelectValue placeholder={t("tasks.filters.project.placeholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {projectOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              {(filterStatus !== "all" || filterPriority !== "all" || searchQuery) && (
+              {(filterStatus !== "all" || filterPriority !== "all" || projectFilter !== "all" || searchQuery) && (
                 <Button variant="outline" size="sm" onClick={clearFilters} className="h-8 px-2">
                   {t("tasks.filters.clear")}
                 </Button>
@@ -328,25 +426,30 @@ export default function Tasks() {
           <p className="text-xs text-muted-foreground">
             {t("tasks.stats.showing", { count: visibleTasks, total: totalTasks })}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setViewMode(viewMode === "kanban" ? "list" : "kanban")}
-            data-testid="button-view-mode"
-            className="h-8"
-          >
-            {viewMode === "kanban" ? t("tasks.viewModes.list") : t("tasks.viewModes.kanban")}
-          </Button>
+          <div className="flex items-center gap-2">
+            {(['kanban', 'list', 'gantt'] as const).map((mode) => (
+              <Button
+                key={mode}
+                variant={viewMode === mode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewMode(mode)}
+                data-testid={'tasks-view-' + mode}
+                className="h-8"
+              >
+                {t('tasks.viewModes.' + mode)}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {viewMode === "kanban" ? (
+      {viewMode === "kanban" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-1" data-testid="kanban-board">
           {statusColumns.map((column) => {
             const columnTasks = getTasksByStatus(column.status);
             return (
-              <Card key={column.id} className="h-fit">
-                <CardHeader className="pb-3">
+              <Card key={column.id} className="h-fit transition-all duration-200">
+                <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl font-bold">{columnTasks.length}</div>
@@ -361,6 +464,12 @@ export default function Tasks() {
                       {...task}
                       onStatusChange={handleStatusChange}
                       onClick={handleTaskClick}
+                      onEdit={handleTaskEdit}
+                      onDelete={handleTaskDelete}
+                      onDuplicate={handleTaskDuplicate}
+                      onArchive={handleTaskArchive}
+                      onShare={handleTaskShare}
+                      onToggleFavorite={handleToggleFavorite}
                     />
                   ))}
                   {columnTasks.length === 0 && (
@@ -373,7 +482,9 @@ export default function Tasks() {
             );
           })}
         </div>
-      ) : (
+      )}
+
+      {viewMode === "list" && (
         <div className="space-y-4" data-testid="task-list">
           {filteredTasks.map((task) => (
             <TaskCard
@@ -381,6 +492,12 @@ export default function Tasks() {
               {...task}
               onStatusChange={handleStatusChange}
               onClick={handleTaskClick}
+              onEdit={handleTaskEdit}
+              onDelete={handleTaskDelete}
+              onDuplicate={handleTaskDuplicate}
+              onArchive={handleTaskArchive}
+              onShare={handleTaskShare}
+              onToggleFavorite={handleToggleFavorite}
             />
           ))}
           {filteredTasks.length === 0 && (
@@ -393,6 +510,14 @@ export default function Tasks() {
         </div>
       )}
 
+      {viewMode === "gantt" && (
+        <Card className="mt-4" data-testid="task-gantt">
+          <CardContent className="p-4">
+            <GanttChart tasks={ganttTasks} onTaskClick={handleTaskClick} />
+          </CardContent>
+        </Card>
+      )}
+
       <NewTaskModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
@@ -400,17 +525,28 @@ export default function Tasks() {
       />
 
       <TaskDetailModal
-        open={!!selectedTask}
+        open={Boolean(selectedTaskDetail)}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedTaskId(null);
-            setSelectedTask(null);
           }
         }}
-        task={selectedTask}
+        task={selectedTaskDetail}
         onTaskUpdate={handleTaskUpdate}
         onTaskDelete={handleTaskDelete}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        onConfirm={handleConfirmDelete}
+        itemType="task"
+        itemName={taskToDelete?.title}
       />
     </div>
   );
 }
+
+
+
+

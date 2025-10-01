@@ -201,10 +201,10 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <Card data-testid="stat-chats">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card data-testid="stat-chats" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("dashboard.stats.chats.title")}</CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <MessageSquare className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats?.activeChats ?? 0}</div>
@@ -215,10 +215,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-tasks">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card data-testid="stat-tasks" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("dashboard.stats.tasks.title")}</CardTitle>
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                <CheckSquare className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats?.pendingTasks ?? 0}</div>
@@ -228,10 +228,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-projects">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card data-testid="stat-projects" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("dashboard.stats.projects.title")}</CardTitle>
-                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                <FolderOpen className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{activeProjects}</div>
@@ -241,10 +241,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-knowledge">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card data-testid="stat-knowledge" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("dashboard.stats.knowledge.title")}</CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <BookOpen className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats?.knowledgeArticles ?? 0}</div>
@@ -254,10 +254,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-meetings">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card data-testid="stat-meetings" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("dashboard.stats.meetings.title")}</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats?.upcomingMeetings ?? 0}</div>

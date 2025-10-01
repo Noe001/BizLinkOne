@@ -25,6 +25,7 @@ export interface TaskSeed {
   dueInDays?: number;
   relatedChatId?: string;
   relatedMeetingId?: string;
+  projectId?: string;
   tags?: string[];
   estimatedHours?: number;
 }
@@ -76,6 +77,7 @@ export const createSampleTasksData = (referenceDate = new Date()): SampleTaskDat
       assigneeId: "john-doe",
       dueInDays: 3,
       relatedChatId: "development",
+      projectId: "proj-1",
       tags: ["Backend", "Security"],
       estimatedHours: 8,
       relatedMeetingId: "meeting-2",
@@ -89,6 +91,7 @@ export const createSampleTasksData = (referenceDate = new Date()): SampleTaskDat
       assigneeId: "sarah-wilson",
       dueInDays: 7,
       relatedChatId: "development",
+      projectId: "proj-1",
       tags: ["Documentation", "API"],
       estimatedHours: 4,
     },
@@ -101,6 +104,7 @@ export const createSampleTasksData = (referenceDate = new Date()): SampleTaskDat
       assigneeId: "mike-johnson",
       dueInDays: 1,
       relatedChatId: "design",
+      projectId: "proj-2",
       tags: ["Frontend", "Mobile", "CSS"],
       estimatedHours: 6,
     },
@@ -112,6 +116,7 @@ export const createSampleTasksData = (referenceDate = new Date()): SampleTaskDat
       priority: "low",
       assigneeId: "alice-cooper",
       dueInDays: 14,
+      projectId: "proj-2",
       tags: ["DevOps", "Automation"],
       estimatedHours: 12,
     },
@@ -123,6 +128,7 @@ export const createSampleTasksData = (referenceDate = new Date()): SampleTaskDat
       priority: "medium",
       assigneeId: "bob-smith",
       dueInDays: -2,
+      projectId: "proj-3",
       tags: ["Database", "Performance"],
       estimatedHours: 5,
     },
@@ -135,6 +141,7 @@ export const createSampleTasksData = (referenceDate = new Date()): SampleTaskDat
       assigneeId: "sarah-wilson",
       dueInDays: 5,
       relatedChatId: "product",
+      projectId: "proj-3",
       tags: ["Frontend", "UX"],
       estimatedHours: 10,
     },
@@ -241,6 +248,7 @@ export interface TaskStateLike {
   dueDate?: Date;
   relatedChatId?: string;
   relatedMeetingId?: string;
+  projectId?: string;
   tags?: string[];
   estimatedHours?: number;
   createdAt?: Date;
@@ -280,6 +288,7 @@ export const hydrateTaskForList = ({ task, translate }: HydrateTaskParams) => {
     dueDate: task.dueDate,
     relatedChatId: task.relatedChatId,
     relatedMeetingId: task.relatedMeetingId,
+    projectId: task.projectId,
     tags: task.tags,
     estimatedHours: task.estimatedHours,
   };
@@ -299,14 +308,14 @@ export const hydrateTaskDetail = ({ seed, overrides, extras, translate, referenc
   const createdAt = overrides.createdAt ?? (extras ? subDays(referenceDate, extras.createdDaysAgo) : referenceDate);
   const updatedAt = overrides.updatedAt ?? (extras ? subDays(referenceDate, extras.updatedDaysAgo) : referenceDate);
 
-  const subtasks = extras?.subtasks?.map((subtask) => ({
+  const fallbackSubtasks = extras?.subtasks?.map((subtask) => ({
     id: subtask.id,
     title: subtask.title,
     completed: subtask.completed,
     assigneeId: subtask.assigneeId,
   })) ?? [];
 
-  const comments = extras?.comments?.map((comment) => {
+  const fallbackComments = extras?.comments?.map((comment) => {
     const participant = getParticipant(comment.authorId);
     return {
       id: comment.id,
@@ -318,7 +327,7 @@ export const hydrateTaskDetail = ({ seed, overrides, extras, translate, referenc
     };
   }) ?? [];
 
-  const timeEntries = extras?.timeEntries?.map((entry) => {
+  const fallbackTimeEntries = extras?.timeEntries?.map((entry) => {
     const participant = getParticipant(entry.userId);
     return {
       id: entry.id,
@@ -329,6 +338,10 @@ export const hydrateTaskDetail = ({ seed, overrides, extras, translate, referenc
       userName: participant?.name ?? entry.userId,
     };
   }) ?? [];
+
+  const subtasks = overrides.subtasks ?? fallbackSubtasks;
+  const comments = overrides.comments ?? fallbackComments;
+  const timeEntries = overrides.timeEntries ?? fallbackTimeEntries;
 
   return {
     id: overrides.id,
@@ -342,6 +355,7 @@ export const hydrateTaskDetail = ({ seed, overrides, extras, translate, referenc
     dueDate: overrides.dueDate,
     relatedChatId: overrides.relatedChatId,
     relatedMeetingId: overrides.relatedMeetingId,
+    projectId: overrides.projectId ?? seed?.projectId,
     tags: overrides.tags ?? [],
     createdAt,
     updatedAt,

@@ -225,10 +225,10 @@ export default function Projects() {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("projects.overview.stats.total.title")}</CardTitle>
-                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                <FolderOpen className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalProjects}</div>
@@ -239,10 +239,10 @@ export default function Projects() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("projects.overview.stats.active.title")}</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
+                <Target className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{activeProjects}</div>
@@ -250,10 +250,10 @@ export default function Projects() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("projects.overview.stats.tasks.title")}</CardTitle>
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                <CheckSquare className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalTasks}</div>
@@ -263,10 +263,10 @@ export default function Projects() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("projects.overview.stats.team.title")}</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <Users className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalTeamMembers}</div>
@@ -279,8 +279,19 @@ export default function Projects() {
             {filteredProjects.map((project) => (
               <Card
                 key={project.id}
-                className={`cursor-pointer transition-all hover:shadow-lg ${selectedProject === project.id ? "ring-2 ring-primary" : ""}`}
+                className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] ${
+                  selectedProject === project.id ? "ring-2 ring-primary" : ""
+                }`}
                 onClick={() => setSelectedProject(project.id)}
+                role="button"
+                aria-label={t("projects.overview.project.select", { name: project.name })}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedProject(project.id);
+                  }
+                }}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -290,12 +301,12 @@ export default function Projects() {
                     </div>
                     <Badge className={
                       project.status === "active"
-                        ? "bg-blue-100 text-blue-800"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                         : project.status === "planning"
-                        ? "bg-gray-100 text-gray-800"
+                        ? "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
                         : project.status === "on-hold"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
+                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                        : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
                     }>
                       {project.statusLabel}
                     </Badge>
@@ -307,18 +318,22 @@ export default function Projects() {
                       <span>{t("projects.overview.project.progress")}</span>
                       <span className="font-medium">{project.progress}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full transition-all ${
+                        className={`h-2 rounded-full transition-all duration-500 ${
                           project.progress >= 80
-                            ? "bg-green-500"
+                            ? "bg-green-500 dark:bg-green-600"
                             : project.progress >= 60
-                            ? "bg-blue-500"
+                            ? "bg-blue-500 dark:bg-blue-600"
                             : project.progress >= 40
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
+                            ? "bg-yellow-500 dark:bg-yellow-600"
+                            : "bg-red-500 dark:bg-red-600"
                         }`}
                         style={{ width: `${project.progress}%` }}
+                        role="progressbar"
+                        aria-valuenow={project.progress}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
                       />
                     </div>
                   </div>

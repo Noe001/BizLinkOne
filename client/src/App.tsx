@@ -10,6 +10,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { NotificationsProvider } from "@/components/NotificationPanel";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { WorkspaceDataProvider } from "@/contexts/WorkspaceDataContext";
 import { LanguageProvider, useTranslation } from "@/contexts/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -190,8 +191,10 @@ function AppRoot() {
         <TooltipProvider>
           <LanguageProvider>
             <AuthProvider>
-              <App />
-              <Toaster />
+              <WorkspaceDataProvider>
+                <App />
+                <Toaster />
+              </WorkspaceDataProvider>
             </AuthProvider>
           </LanguageProvider>
         </TooltipProvider>

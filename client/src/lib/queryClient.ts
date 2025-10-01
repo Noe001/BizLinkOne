@@ -1,16 +1,28 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-async function throwIfResNotOk(res: Response) {
+/**
+ * Throws an error if the response is not OK
+ * @param res Response object
+ * @throws Error with status and message
+ */
+async function throwIfResNotOk(res: Response): Promise<void> {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
 }
 
+/**
+ * Make an API request with automatic error handling
+ * @param method HTTP method
+ * @param url API endpoint URL
+ * @param data Request body data (optional)
+ * @returns Response object
+ */
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown,
 ): Promise<Response> {
   const res = await fetch(url, {
     method,

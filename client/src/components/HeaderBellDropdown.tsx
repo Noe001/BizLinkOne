@@ -29,12 +29,12 @@ export function HeaderBellDropdown() {
           variant="outline"
           size="icon"
           aria-label={t("header.notificationsAria")}
-          className="relative border-0"
+          className="relative border-0 transition-all duration-150 hover:scale-110"
           data-testid="header-notifications"
         >
-          <Bell className="h-4 w-4" />
+          <Bell className="h-4 w-4 transition-colors duration-150" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-4 min-w-[1rem] px-1 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-4 min-w-[1rem] px-1 rounded-full bg-red-600 dark:bg-red-500 text-white text-[10px] flex items-center justify-center animate-pulse">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}

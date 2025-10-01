@@ -8,45 +8,23 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, Plus, BookOpen, TrendingUp, Eye, Clock, Filter, FileText, Users, Calendar } from "lucide-react";
 import { KnowledgeCard } from "@/components/KnowledgeCard";
+import { KnowledgeDetailModal, type KnowledgeArticleDetail } from "@/components/KnowledgeDetailModal";
+import { CreateKnowledgeModal } from "@/components/CreateKnowledgeModal";
 import { KnowledgeSkeleton, EmptyState } from "@/components/ui/skeleton-components";
-import { knowledgeArticleSeeds, knowledgePopularTagKeys, type KnowledgeArticleSeed } from "@/data/knowledge/seeds";
-import { sampleParticipants } from "@/data/sampleWorkspace";
+import { knowledgePopularTagKeys } from "@/data/knowledge/seeds";
+import { useWorkspaceData } from "@/contexts/WorkspaceDataContext";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
+import { KNOWLEDGE_ROUTE_BASE } from "@/constants/commands";
 import { subDays } from "date-fns";
 import { ja as jaLocale } from "date-fns/locale";
+import { getTagColor } from "@/utils/tagColors";
 
-const referenceDate = new Date();
+const now = new Date();
 
-const tagColors: Record<string, string> = {
-  authentication: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
-  security: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
-  jwt: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
-  backend: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800",
-  api: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800",
-  documentation: "bg-card text-card-foreground border-card-border dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800",
-  standards: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800",
-  guidelines: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800",
-  deployment: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800",
-  devops: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800",
-  production: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
-  ciCd: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
-  testing: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
-  database: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-800",
-  schema: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-800",
-  design: "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800",
-  performance: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
-  sql: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-800",
-  frontend: "bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800",
-  components: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800",
-  ui: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800",
-  react: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
-  designSystem: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800",
-  bestPractices: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800",
-  compliance: "bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-900/20 dark:text-violet-300 dark:border-violet-800",
-  vulnerabilities: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800",
-};
-
-type KnowledgeTagSlug = keyof typeof tagColors;
+type KnowledgeTagSlug = string;
 
 interface LocalisedArticle {
   id: string;
@@ -72,28 +50,48 @@ export default function Knowledge() {
   const [authorFilter, setAuthorFilter] = useState("all");
   const [isLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<KnowledgeArticleDetail | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const participantMap = useMemo(() => new Map(sampleParticipants.map((member) => [member.id, member])), []);
+  const { knowledgeArticles, getParticipantById, updateKnowledge, deleteKnowledge, createKnowledge } = useWorkspaceData();
+  const { user } = useAuth();
+
+  const currentUserId = user?.id ?? "user-1";
+  const currentUserName = user?.name ?? "You";
 
   const articles = useMemo<LocalisedArticle[]>(() => {
-    return knowledgeArticleSeeds.map((seed: KnowledgeArticleSeed) => {
-      const author = seed.authorId ? participantMap.get(seed.authorId) ?? null : null;
+    return knowledgeArticles.map((article) => {
+      const participant = article.authorId ? getParticipantById(article.authorId) : undefined;
+      const author = participant
+        ? { id: participant.id, name: participant.name, avatar: participant.avatar }
+        : article.authorName
+          ? { id: article.authorId ?? article.authorName.toLowerCase().replace(/\s+/g, "-"), name: article.authorName }
+          : null;
+
+      const mappedTags = article.tags.map((tag) => {
+        const translationKey = `knowledge.tags.${tag}`;
+        const translated = t(translationKey);
+        const label = translated === translationKey ? tag : translated;
+        return {
+          id: tag,
+          label,
+        };
+      });
+
       return {
-        id: seed.id,
-        title: seed.title,
-        excerpt: seed.excerpt,
-        tags: seed.tags.map((tag) => ({
-          id: tag as KnowledgeTagSlug,
-          label: t(`knowledge.tags.${tag}`),
-        })),
+        id: article.id,
+        title: article.title,
+        excerpt: article.summary,
+        tags: mappedTags,
         author,
-        createdAt: subDays(referenceDate, seed.createdDaysAgo),
-        updatedAt: seed.updatedDaysAgo !== undefined ? subDays(referenceDate, seed.updatedDaysAgo) : undefined,
-        views: seed.views,
-        relatedChatId: seed.relatedChatId,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt,
+        views: article.views,
+        relatedChatId: article.relatedChatId,
       };
     });
-  }, [t, participantMap]);
+  }, [knowledgeArticles, getParticipantById, t]);
 
   const tagOptions = useMemo(() => {
     const map = new Map<string, { id: string; label: string }>();
@@ -119,12 +117,16 @@ export default function Knowledge() {
 
   const totalArticles = articles.length;
   const totalViews = articles.reduce((sum, article) => sum + (article.views ?? 0), 0);
-  const articlesThisWeek = articles.filter((article) => article.createdAt >= subDays(referenceDate, 7)).length;
+  const articlesThisWeek = knowledgeArticles.filter((article) => article.createdAt >= subDays(now, 7)).length;
 
-  const popularTags = knowledgePopularTagKeys.map((key: string) => ({
-    id: key,
-    label: t(`knowledge.tags.${key}`),
-  }));
+  const popularTags = knowledgePopularTagKeys.map((key: string) => {
+    const translationKey = `knowledge.tags.${key}`;
+    const translated = t(translationKey);
+    return {
+      id: key,
+      label: translated === translationKey ? key : translated,
+    };
+  });
 
   const filteredArticles = useMemo(() => {
     const normalisedQuery = searchQuery.trim().toLowerCase();
@@ -148,13 +150,13 @@ export default function Knowledge() {
           }
           const createdAt = article.createdAt;
           if (dateFilter === "week") {
-            return createdAt >= subDays(referenceDate, 7);
+            return createdAt >= subDays(now, 7);
           }
           if (dateFilter === "month") {
-            return createdAt >= subDays(referenceDate, 30);
+            return createdAt >= subDays(now, 30);
           }
           if (dateFilter === "quarter") {
-            return createdAt >= subDays(referenceDate, 90);
+            return createdAt >= subDays(now, 90);
           }
           return true;
         })();
@@ -203,10 +205,136 @@ export default function Knowledge() {
 
   const handleArticleClick = (articleId: string) => {
     console.log(t("knowledge.log.open"), articleId);
+    const article = knowledgeArticles.find((a) => a.id === articleId);
+    if (!article) return;
+
+    const participant = article.authorId ? getParticipantById(article.authorId) : undefined;
+    const author = participant
+      ? { id: participant.id, name: participant.name, avatar: participant.avatar }
+      : article.authorName
+        ? { id: article.authorId ?? article.authorName.toLowerCase().replace(/\s+/g, "-"), name: article.authorName }
+        : undefined;
+
+    const mappedTags = article.tags.map((tag) => {
+      const translationKey = `knowledge.tags.${tag}`;
+      const translated = t(translationKey);
+      const label = translated === translationKey ? tag : translated;
+      return { id: tag, label };
+    });
+
+    const detail: KnowledgeArticleDetail = {
+      id: article.id,
+      title: article.title,
+      content: article.content,
+      excerpt: article.summary,
+      tags: mappedTags,
+      category: article.category,
+      author,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt,
+      views: article.views,
+      relatedChatId: article.relatedChatId,
+      relatedMeetingId: article.relatedMeetingId,
+    };
+
+    setSelectedArticle(detail);
+    setShowDetailModal(true);
   };
 
-  const handleShare = (articleId: string) => {
-    console.log(t("knowledge.log.share"), articleId);
+  const handleUpdateArticle = (id: string, updates: Partial<KnowledgeArticleDetail>) => {
+    updateKnowledge(id, {
+      title: updates.title,
+      content: updates.content,
+      tags: updates.tags?.map(t => t.id),
+    });
+    setShowDetailModal(false);
+    setSelectedArticle(null);
+    toast({
+      title: t("knowledge.detail.save"),
+      description: "Article updated successfully",
+    });
+  };
+
+  const handleDeleteArticle = (id: string) => {
+    deleteKnowledge(id);
+    setShowDetailModal(false);
+    setSelectedArticle(null);
+    toast({
+      title: "Deleted",
+      description: "Article deleted successfully",
+    });
+  };
+
+  const handleShareArticleToChat = async (articleId: string) => {
+    const article = articles.find((item) => item.id === articleId);
+    if (!article) {
+      toast({ title: "Unable to share", description: "Article not found", variant: "destructive" });
+      return;
+    }
+
+    const channelId = article.relatedChatId ?? "general";
+    const summary = article.excerpt ?? article.title;
+    const message = `📚 **${article.title}**
+
+${summary}
+
+[View full article](${KNOWLEDGE_ROUTE_BASE}/${article.id})`;
+
+    try {
+      await apiRequest("POST", "/api/messages", {
+        content: message,
+        userId: currentUserId,
+        userName: currentUserName,
+        channelId,
+        channelType: "channel",
+      });
+
+      toast({
+        title: "Shared",
+        description: `Article shared to #${channelId}`,
+      });
+      setShowDetailModal(false);
+    } catch (error) {
+      console.error("Error sharing article:", error);
+      toast({
+        title: "Error",
+        description: "Failed to share article",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = async (articleId: string) => {
+    const article = articles.find((item) => item.id === articleId);
+    if (!article) {
+      toast({ title: "Unable to share", description: "Article not found", variant: "destructive" });
+      return;
+    }
+
+    const channelId = article.relatedChatId ?? "general";
+    const summary = article.excerpt ?? article.title;
+    const message = `?? **${article.title}**
+
+${summary}
+
+[View full article](${KNOWLEDGE_ROUTE_BASE}/${article.id})`;
+
+    try {
+      await apiRequest("POST", "/api/messages", {
+        content: message,
+        userId: currentUserId,
+        userName: currentUserName,
+        channelId,
+        channelType: "channel",
+      });
+
+      toast({ title: "Shared to chat", description: `Posted to #${channelId}` });
+      queryClient.invalidateQueries({ queryKey: ["chatMessages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : "Please try again.";
+      toast({ title: "Failed to share", description, variant: "destructive" });
+    }
   };
 
   const clearFilters = () => {
@@ -223,17 +351,17 @@ export default function Knowledge() {
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-muted-foreground">{t("knowledge.header.description")}</p>
-          <Button>
+          <Button onClick={() => setCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             {t("knowledge.actions.new")}
           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-sm font-medium">{t("knowledge.stats.totalArticles.title")}</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <BookOpen className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalArticles}</div>
@@ -241,10 +369,10 @@ export default function Knowledge() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-sm font-medium">{t("knowledge.stats.views.title")}</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
+              <Eye className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalViews}</div>
@@ -252,10 +380,10 @@ export default function Knowledge() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-sm font-medium">{t("knowledge.stats.thisWeek.title")}</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{articlesThisWeek}</div>
@@ -263,10 +391,10 @@ export default function Knowledge() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-sm font-medium">{t("knowledge.stats.popularTags.title")}</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-muted-foreground transition-colors duration-150" />
             </CardHeader>
             <CardContent className="space-y-2">
               {popularTags.map((tag) => (
@@ -547,6 +675,28 @@ export default function Knowledge() {
           </div>
         </div>
       </div>
+
+      <KnowledgeDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        article={selectedArticle}
+        onUpdate={handleUpdateArticle}
+        onDelete={handleDeleteArticle}
+        onShareToChat={handleShareArticleToChat}
+      />
+
+      <CreateKnowledgeModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreateKnowledge={(knowledgeData) => {
+          createKnowledge(knowledgeData);
+          setCreateModalOpen(false);
+          toast({
+            title: t("common.success"),
+            description: t("knowledge.create.title") + " - " + knowledgeData.title,
+          });
+        }}
+      />
     </div>
   );
 }
