@@ -448,9 +448,9 @@ export default function Meetings() {
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="page-meetings">
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground">
+    <div className="page-container" data-testid="page-meetings">
+      <div className="page-header">
+        <p className="text-muted-foreground max-w-3xl">
           {t("meetings.header.description")}
         </p>
         <Button onClick={() => setShowCreateModal(true)} data-testid="button-new-meeting">
@@ -460,15 +460,15 @@ export default function Meetings() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:gap-6">
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
         </div>
-            ) : (
+      ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:gap-6">
             <Card data-testid="stat-total-meetings" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("meetings.stats.total.label")}</CardTitle>
@@ -682,7 +682,7 @@ export default function Meetings() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="meetings-grid">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6" data-testid="meetings-grid">
           {[...Array(6)].map((_, index) => (
             <MeetingSkeleton key={index} />
           ))}
@@ -704,7 +704,7 @@ export default function Meetings() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="meetings-grid">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6" data-testid="meetings-grid">
           {filteredMeetings.map((meeting) => (
             <MeetingCard
               key={meeting.id}

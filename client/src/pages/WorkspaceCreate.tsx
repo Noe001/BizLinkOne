@@ -72,10 +72,10 @@ export default function WorkspaceCreatePage({ onWorkspaceCreate }: WorkspaceCrea
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-svh bg-background flex items-center justify-center px-4 py-6">
       <Card className="w-full max-w-lg">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -114,8 +114,8 @@ export default function WorkspaceCreatePage({ onWorkspaceCreate }: WorkspaceCrea
             
             <div className="space-y-2">
               <Label htmlFor="workspaceUrl">{t('auth.workspaceCreate.workspaceUrlLabel')}</Label>
-              <div className="flex items-center">
-                <span className="text-sm text-muted-foreground mr-2">bizlinkone.com/</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground sm:mr-2">bizlinkone.com/</span>
                 <Input
                   id="workspaceUrl"
                   type="text"

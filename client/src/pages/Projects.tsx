@@ -180,17 +180,17 @@ export default function Projects() {
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="page-projects">
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground">{t("projects.header.description")}</p>
+    <div className="page-container" data-testid="page-projects">
+      <div className="page-header">
+        <p className="text-muted-foreground max-w-3xl">{t("projects.header.description")}</p>
         <Button data-testid="button-new-project" onClick={() => setCreateModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           {t("projects.actions.new")}
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="page-header sm:flex-row sm:items-center">
+        <div className="relative flex-1 min-w-[12rem] sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("projects.filters.searchPlaceholder")}
@@ -201,7 +201,7 @@ export default function Projects() {
         </div>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-48">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder={t("projects.filters.status.placeholder")} />
           </SelectTrigger>
@@ -216,7 +216,7 @@ export default function Projects() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
+        <TabsList className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <TabsTrigger value="overview">{t("projects.tabs.overview")}</TabsTrigger>
           <TabsTrigger value="timeline">{t("projects.tabs.timeline")}</TabsTrigger>
           <TabsTrigger value="tasks">{t("projects.tabs.tasks")}</TabsTrigger>
@@ -224,7 +224,7 @@ export default function Projects() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 md:gap-6">
             <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("projects.overview.stats.total.title")}</CardTitle>
@@ -275,7 +275,7 @@ export default function Projects() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
             {filteredProjects.map((project) => (
               <Card
                 key={project.id}
@@ -443,7 +443,7 @@ export default function Projects() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

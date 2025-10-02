@@ -179,10 +179,10 @@ export default function Dashboard() {
   const isLoading = statsLoading || messagesLoading || tasksLoading || knowledgeLoading || meetingsLoading;
 
   return (
-    <div className="p-6 space-y-6" data-testid="page-dashboard">
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground">{t("dashboard.header.description")}</p>
-        <div className="flex items-center gap-2">
+    <div className="page-container" data-testid="page-dashboard">
+      <div className="page-header">
+        <p className="text-muted-foreground max-w-3xl">{t("dashboard.header.description")}</p>
+        <div className="page-actions">
           <Button size="sm" data-testid="button-new-item">
             <Plus className="h-4 w-4 mr-2" />
             {t("dashboard.actions.new")}
@@ -190,7 +190,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5 md:gap-6">
         {statsLoading ? (
           <>
             <StatCardSkeleton />
@@ -271,7 +271,7 @@ export default function Dashboard() {
       </div>
 
       <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           <Card data-testid="section-recent-messages">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

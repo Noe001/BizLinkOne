@@ -342,15 +342,15 @@ export default function Tasks() {
   const visibleTasks = filteredTasks.length;
 
   return (
-    <div className="p-6" data-testid="page-tasks">
+    <div className="page-container" data-testid="page-tasks">
       {/* ラチEEを追加ぁEspace-y-6 の対象要素からカンバン部をE離 */}
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <p className="text-muted-foreground">{t("tasks.header.description")}</p>
-        <Button data-testid="button-new-task" onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t("tasks.actions.new")}
-        </Button>
+        <div className="page-header">
+          <p className="text-muted-foreground max-w-3xl">{t("tasks.header.description")}</p>
+          <Button data-testid="button-new-task" onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t("tasks.actions.new")}
+          </Button>
         </div>
 
         <Card>
@@ -444,7 +444,7 @@ export default function Tasks() {
       </div>
 
       {viewMode === "kanban" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-1" data-testid="kanban-board">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 md:gap-6 mt-1" data-testid="kanban-board">
           {statusColumns.map((column) => {
             const columnTasks = getTasksByStatus(column.status);
             return (

@@ -136,17 +136,17 @@ function AuthenticatedApp() {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex min-h-svh w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-2 border border-card-border bg-card rounded-lg m-2">
-            <div className="flex items-center min-w-0">
+          <header className="flex flex-wrap items-center justify-between gap-3 p-2 border border-card-border bg-card rounded-lg m-2">
+            <div className="flex items-center min-w-0 flex-1 sm:flex-none">
               <a href="/" className="flex items-baseline ml-2">
                 <span className="text-lg uppercase font-sans ml-1 font-light text-green-800 truncate">{headerTitle}</span>
               </a>
             </div>
             {/* search moved to header right near theme toggle */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="page-actions flex-1 sm:flex-none sm:justify-end">
               <div className="hidden sm:flex items-center mr-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
