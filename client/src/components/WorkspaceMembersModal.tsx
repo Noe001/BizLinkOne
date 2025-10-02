@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { 
   Users, 
   UserPlus, 
@@ -20,6 +20,7 @@ import {
   XCircle
 } from "lucide-react";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { getTagColor } from "@/utils/tagColors";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,20 +139,10 @@ export function WorkspaceMembersModal({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="members">
-              {t("workspace.members.tabs.members")} ({members.length})
-            </TabsTrigger>
-            <TabsTrigger value="invites">
-              {t("workspace.members.tabs.invites")} ({pendingInvites.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex-1 overflow-y-auto mt-4">
-            <TabsContent value="members" className="space-y-4 m-0">
-              {/* Invite Form */}
-              <div className="p-4 border rounded-lg bg-muted/30">
+        <div className="flex-1 overflow-y-auto">
+          <div className="space-y-6">
+            {/* Invite Form */}
+            <div className="p-4 border rounded-lg bg-muted/30">
                 <div className="flex items-center gap-2 mb-3">
                   <UserPlus className="h-4 w-4 text-muted-foreground" />
                   <Label className="text-sm font-semibold">
@@ -281,10 +272,16 @@ export function WorkspaceMembersModal({
                   </div>
                 ))}
               </div>
-            </TabsContent>
 
-            <TabsContent value="invites" className="space-y-4 m-0">
-              {pendingInvites.length === 0 ? (
+              <Separator />
+
+              {/* Pending Invites */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">{t("workspace.members.tabs.invites")} ({pendingInvites.length})</h3>
+                </div>
+                {pendingInvites.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>{t("workspace.members.noPendingInvites")}</p>
@@ -316,12 +313,12 @@ export function WorkspaceMembersModal({
                           {roleConfig[invite.role].label}
                         </Badge>
                         {invite.status === "expired" ? (
-                          <Badge variant="outline" className="bg-red-100 text-red-800">
+                          <Badge variant="outline" className={getTagColor("expired")}>
                             <XCircle className="h-3 w-3 mr-1" />
                             {t("workspace.members.expired")}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                          <Badge variant="outline" className={getTagColor("pending")}>
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             {t("workspace.members.pending")}
                           </Badge>
@@ -353,9 +350,9 @@ export function WorkspaceMembersModal({
                   ))}
                 </div>
               )}
-            </TabsContent>
+              </div>
+            </div>
           </div>
-        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

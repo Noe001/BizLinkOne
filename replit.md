@@ -2,7 +2,7 @@
 
 ## Overview
 
-WorkflowHub is an all-in-one business collaboration platform designed around a chat-centric workflow. The application integrates multiple productivity tools - chat, task management, knowledge base, and meeting coordination - into a unified interface that mimics Cohere's design system. Built as a full-stack TypeScript application, it provides seamless communication and project management capabilities for teams.
+BizLinkOne is an all-in-one business collaboration platform designed around a chat-centric workflow. The application integrates multiple productivity tools - chat, task management, knowledge base, and meeting coordination - into a unified interface that mimics Cohere's design system. Built as a full-stack TypeScript application, it provides seamless communication and project management capabilities for teams.
 
 ## User Preferences
 

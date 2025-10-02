@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { ArrowLeft, Users, Mail } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 
@@ -31,10 +30,6 @@ export default function WorkspaceJoinPage({ onWorkspaceJoin }: WorkspaceJoinPage
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-between">

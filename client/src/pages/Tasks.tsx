@@ -511,11 +511,9 @@ export default function Tasks() {
       )}
 
       {viewMode === "gantt" && (
-        <Card className="mt-4" data-testid="task-gantt">
-          <CardContent className="p-4">
+        
             <GanttChart tasks={ganttTasks} onTaskClick={handleTaskClick} />
-          </CardContent>
-        </Card>
+          
       )}
 
       <NewTaskModal

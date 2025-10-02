@@ -398,6 +398,17 @@
     background-color: var(--elevate-2);
   }
 
+  /* Slower blink animation used for urgent tags so it's noticeable but not distracting */
+  @keyframes blink-slow {
+    0% { opacity: 1; }
+    50% { opacity: 0.35; }
+    100% { opacity: 1; }
+  }
+
+  .blink-urgent {
+    animation: blink-slow 1.5s cubic-bezier(.4,0,.2,1) infinite;
+  }
+
   /* Slower pulse used for "Live" tags to be less visually aggressive */
   @keyframes livePulse {
     0% { opacity: 1; transform: scale(1); }

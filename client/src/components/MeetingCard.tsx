@@ -14,6 +14,7 @@ import { format, formatDistanceToNow, isSameDay } from "date-fns";
 import type { Locale } from "date-fns";
 import { ja as jaLocale } from "date-fns/locale";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { getTagColor } from "@/utils/tagColors";
 
 export type MeetingStatus = "scheduled" | "ongoing" | "completed" | "cancelled";
 
@@ -81,22 +82,22 @@ export function MeetingCard({
   const derivedLocale = locale ?? (language === "ja" ? jaLocale : undefined);
   const statusConfig = {
     scheduled: {
-      color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
+      color: getTagColor("scheduled"),
       icon: Clock,
       label: t("meetings.card.status.upcoming"),
     },
     ongoing: {
-      color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 animate-live-slow",
+      color: `${getTagColor("ongoing")} animate-live-slow`,
       icon: Play,
       label: t("meetings.card.status.live"),
     },
     completed: {
-      color: "bg-card text-card-foreground border-card-border dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800",
+      color: getTagColor("completed"),
       icon: CheckCircle,
       label: t("meetings.card.status.ended"),
     },
     cancelled: {
-      color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
+      color: getTagColor("cancelled"),
       icon: XCircle,
       label: t("meetings.card.status.cancelled"),
     },
@@ -153,6 +154,7 @@ export function MeetingCard({
           </div>
           <div className="flex items-center gap-1">
             <Badge
+              variant="outline"
               className={`h-6 text-xs px-2 gap-1 transition-opacity duration-150 ${statusConfig[status].color}`}
               data-testid={`meeting-status-${id}`}
             >

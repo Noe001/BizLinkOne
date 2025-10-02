@@ -919,14 +919,24 @@ export const ja = {
   },
   accountSettings: {
     header: {
+      title: "アカウント設定",
       back: "戻る",
       description: "個人のアカウント設定と各種環境設定を管理します。",
     },
     actions: {
       saveChanges: "変更を保存",
+      saveProfile: "プロフィールを保存",
+      saving: "保存中...",
+      cancel: "キャンセル",
     },
     alert: {
       unsaved: "未保存の変更があります。「{{action}}」をクリックして適用してください。",
+    },
+    autoSave: {
+      description: "変更は自動的に保存されます。",
+      saving: "保存中...",
+      saved: "保存されました",
+      dismiss: "閉じる",
     },
     tabs: {
       profile: "プロフィール",

@@ -1,5 +1,6 @@
 ﻿import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getTagColor } from "@/utils/tagColors";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -76,17 +77,17 @@ export function TaskCard({
   const locale = language === "ja" ? jaLocale : undefined;
 
   const priorityConfig = {
-    low: { label: t("tasks.card.priority.low"), className: "bg-muted dark:bg-muted/80" },
-    medium: { label: t("tasks.card.priority.medium"), className: "bg-green-700 text-white dark:bg-green-600 dark:text-gray-50" },
-    high: { label: t("tasks.card.priority.high"), className: "bg-red-500 text-white dark:bg-red-600 dark:text-gray-50" },
-    urgent: { label: t("tasks.card.priority.urgent"), className: "bg-red-600 text-white dark:bg-red-700 dark:text-gray-50 animate-pulse" },
+    low: { label: t("tasks.card.priority.low"), className: getTagColor("low") },
+    medium: { label: t("tasks.card.priority.medium"), className: getTagColor("medium") },
+    high: { label: t("tasks.card.priority.high"), className: getTagColor("high") },
+    urgent: { label: t("tasks.card.priority.urgent"), className: `${getTagColor("urgent")} blink-urgent` },
   } satisfies Record<TaskPriority, { label: string; className: string }>;
 
   const statusConfig = {
-    todo: { label: t("tasks.card.status.todo"), className: "bg-muted dark:bg-muted/80" },
-    "in-progress": { label: t("tasks.card.status.inProgress"), className: "bg-blue-600 text-white dark:bg-blue-700 dark:text-gray-50" },
-    review: { label: t("tasks.card.status.review"), className: "bg-purple-600 text-white dark:bg-purple-700 dark:text-gray-50" },
-    done: { label: t("tasks.card.status.done"), className: "bg-green-600 text-white dark:bg-green-700 dark:text-gray-50" },
+    todo: { label: t("tasks.card.status.todo"), className: getTagColor("todo") },
+    "in-progress": { label: t("tasks.card.status.inProgress"), className: getTagColor("in-progress") },
+    review: { label: t("tasks.card.status.review"), className: getTagColor("review") },
+    done: { label: t("tasks.card.status.done"), className: getTagColor("done") },
   } satisfies Record<TaskStatus, { label: string; className: string }>;
 
   const handleCardClick = () => {
@@ -129,8 +130,8 @@ export function TaskCard({
     <TooltipProvider>
       <Card 
         className={`hover-elevate cursor-pointer group transition-all duration-200 hover:shadow-lg ${
-          isOverdue ? 'border-l-4 border-l-red-500 dark:border-l-red-600' : 
-          isDueSoon ? 'border-l-4 border-l-amber-500 dark:border-l-amber-600' : ''
+          isOverdue ? 'border-2 border-red-500 dark:border-red-600' : 
+          isDueSoon ? 'border-2 border-amber-500 dark:border-amber-600' : ''
         }`}
         onClick={handleCardClick} 
         data-testid={`task-card-${id}`}
@@ -139,12 +140,22 @@ export function TaskCard({
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between gap-2 sm:gap-3">
             <div className="flex-1 min-w-0">
+              {tags && tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {tags.slice(0, 3).map((tag) => (
+                    <Badge key={tag} variant="outline" className={`h-5 text-xs ${getTagColor(tag)}`} data-testid={`task-tag-${id}-${tag}`}>
+                      {tag}
+                    </Badge>
+                  ))}
+                  {tags.length > 3 && (
+                    <Badge variant="outline" className="h-5 text-xs bg-card text-card-foreground border-card-border dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800">
+                      +{tags.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              )}
+              
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                {tags?.slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-[10px]" data-testid={`task-tag-${id}-${tag}`}>
-                    {tag}
-                  </Badge>
-                ))}
                 {typeof estimatedHours === "number" && (
                   <Badge variant="outline" className="text-[10px]" data-testid={`task-estimate-${id}`}>
                     {t("tasks.card.estimate", { hours: estimatedHours })}
@@ -259,6 +270,7 @@ export function TaskCard({
         <CardContent className="pt-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-2 flex-wrap">
             <Badge
+              variant="outline"
               className={`h-7 text-xs font-medium cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95 ${statusConfig[status].className}`}
               onClick={handleStatusChange}
               data-testid={`task-status-${id}`}
@@ -269,7 +281,8 @@ export function TaskCard({
             </Badge>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge 
+              <Badge
+                variant="outline"
                 className={`text-xs font-medium transition-opacity duration-150 ${priorityConfig[priority].className}`} 
                 data-testid={`task-priority-${id}`}
               >

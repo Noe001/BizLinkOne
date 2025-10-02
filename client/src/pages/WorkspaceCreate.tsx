@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { Building2, Users, Briefcase, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
 
@@ -74,10 +73,6 @@ export default function WorkspaceCreatePage({ onWorkspaceCreate }: WorkspaceCrea
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      
       <Card className="w-full max-w-lg">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-between">

@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { NotificationsProvider } from "@/components/NotificationPanel";
@@ -153,9 +152,6 @@ function AuthenticatedApp() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input className="pl-10 w-60 rounded-md" placeholder={t('common.searchPlaceholder')} aria-label={t('header.searchLabel')} />
                 </div>
-              </div>
-              <div className="hidden sm:block">
-                <ThemeToggle />
               </div>
               <HeaderBellDropdown />
               <UserProfileDropdown collapsed={true} onLogout={handleLogout} />

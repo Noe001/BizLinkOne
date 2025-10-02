@@ -27,11 +27,15 @@ import {
   Trash2,
   Download,
   Upload,
-  ArrowLeft
+  ArrowLeft,
+  Check,
+  Loader2,
+  X
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { useTheme } from "@/components/ThemeProvider";
 
 const tabs = ["profile", "notifications", "appearance", "security"] as const;
 type AccountSettingsTab = (typeof tabs)[number];
@@ -51,6 +55,7 @@ const mockUser = {
 export default function AccountSettings() {
   const [location, setLocation] = useLocation();
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
 
   const parseTabFromLocation = (loc: string): AccountSettingsTab | null => {
     const parts = loc.split("?");
@@ -67,6 +72,13 @@ export default function AccountSettings() {
 
   const [activeTab, setActiveTab] = useState<AccountSettingsTab>(() => parseTabFromLocation(location) ?? "profile");
   const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showAutoSaveBanner, setShowAutoSaveBanner] = useState(() => {
+    // Check if user has dismissed the banner before (stored in localStorage)
+    const dismissed = localStorage.getItem('autoSaveBannerDismissed');
+    return dismissed !== 'true';
+  });
 
   useEffect(() => {
     const urlTab = parseTabFromLocation(location);
@@ -129,7 +141,6 @@ export default function AccountSettings() {
 
   // Appearance settings
   const [appearance, setAppearance] = useState({
-    theme: "system",
     accentColor: "blue",
     sidebarCollapsed: false,
     compactMode: false,
@@ -144,9 +155,30 @@ export default function AccountSettings() {
   });
 
   const handleSave = () => {
-    console.log("Saving account settings...");
-    setIsDirty(false);
-    // Here you would typically make API calls to save the settings
+    console.log("Saving profile settings...");
+    setIsSaving(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsDirty(false);
+    }, 1000);
+  };
+
+  const handleAutoSave = (callback: () => void) => {
+    setAutoSaveStatus('saving');
+    callback();
+    // Simulate API call
+    setTimeout(() => {
+      setAutoSaveStatus('saved');
+      setTimeout(() => {
+        setAutoSaveStatus('idle');
+      }, 2000);
+    }, 500);
+  };
+
+  const dismissAutoSaveBanner = () => {
+    setShowAutoSaveBanner(false);
+    localStorage.setItem('autoSaveBannerDismissed', 'true');
   };
 
   const handleProfileChange = (field: string, value: string) => {
@@ -155,11 +187,12 @@ export default function AccountSettings() {
   };
 
   const handleNotificationChange = (category: keyof typeof notifications, field: string, value: boolean) => {
-    setNotifications(prev => ({
-      ...prev,
-      [category]: { ...prev[category], [field]: value }
-    }));
-    setIsDirty(true);
+    handleAutoSave(() => {
+      setNotifications(prev => ({
+        ...prev,
+        [category]: { ...prev[category], [field]: value }
+      }));
+    });
   };
 
   return (
@@ -173,26 +206,32 @@ export default function AccountSettings() {
 {t('accountSettings.header.back')}
             </Button>
           </Link>
-          <p className="text-muted-foreground">
-            {t('accountSettings.header.description')}
-          </p>
+          <div>
+            <h1 className="text-2xl font-semibold">{t('accountSettings.header.title')}</h1>
+            <p className="text-sm text-muted-foreground">
+              {t('accountSettings.header.description')}
+            </p>
+          </div>
         </div>
-        {isDirty && (
-          <Button onClick={handleSave} className="flex items-center gap-2">
-            <Save className="h-4 w-4" />
-            {t('accountSettings.actions.saveChanges')}
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Auto-save indicator for non-profile tabs */}
+          {activeTab !== 'profile' && autoSaveStatus !== 'idle' && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {autoSaveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t('accountSettings.autoSave.saving')}</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 text-green-600" />
+                  <span className="text-green-600">{t('accountSettings.autoSave.saved')}</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-
-      {isDirty && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {t('accountSettings.alert.unsaved', { action: t('accountSettings.actions.saveChanges') })}
-          </AlertDescription>
-        </Alert>
-      )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
@@ -320,12 +359,73 @@ export default function AccountSettings() {
                   </Select>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Save Button */}
+              <div className="flex justify-end gap-3">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setProfileData({
+                      name: mockUser.name,
+                      email: mockUser.email,
+                      department: mockUser.department,
+                      timezone: mockUser.timezone,
+                    });
+                    setIsDirty(false);
+                  }}
+                  disabled={!isDirty || isSaving}
+                >
+                  {t('accountSettings.actions.cancel')}
+                </Button>
+                <Button 
+                  onClick={handleSave} 
+                  disabled={!isDirty || isSaving}
+                  className="flex items-center gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('accountSettings.actions.saving')}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      {t('accountSettings.actions.saveProfile')}
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-6">
+          {/* Auto-save info banner */}
+          {showAutoSaveBanner && (
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-900 p-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 self-center" />
+                  <AlertDescription className="text-blue-800 dark:text-blue-300">
+                    {t('accountSettings.autoSave.description')}
+                  </AlertDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900 flex-shrink-0"
+                  onClick={dismissAutoSaveBanner}
+                  aria-label={t('accountSettings.autoSave.dismiss')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </Alert>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -387,6 +487,29 @@ export default function AccountSettings() {
 
         {/* Appearance Tab */}
         <TabsContent value="appearance" className="space-y-6">
+          {/* Auto-save info banner */}
+          {showAutoSaveBanner && (
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-900 p-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 self-center" />
+                  <AlertDescription className="text-blue-800 dark:text-blue-300">
+                    {t('accountSettings.autoSave.description')}
+                  </AlertDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900 flex-shrink-0"
+                  onClick={dismissAutoSaveBanner}
+                  aria-label={t('accountSettings.autoSave.dismiss')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </Alert>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -405,18 +528,22 @@ export default function AccountSettings() {
                     { value: 'light', icon: Sun },
                     { value: 'dark', icon: Moon },
                     { value: 'system', icon: Monitor }
-                  ].map((theme) => (
+                  ].map((themeOption) => (
                     <Card 
-                      key={theme.value}
+                      key={themeOption.value}
                       className={`cursor-pointer transition-colors ${
-                        appearance.theme === theme.value ? 'ring-2 ring-primary' : ''
+                        theme === themeOption.value ? 'ring-2 ring-primary' : ''
                       }`}
-                      onClick={() => setAppearance(prev => ({ ...prev, theme: theme.value }))}
+                      onClick={() => {
+                        handleAutoSave(() => {
+                          setTheme(themeOption.value as "light" | "dark" | "system");
+                        });
+                      }}
                     >
                       <CardContent className="flex flex-col items-center justify-center p-6">
-                        <theme.icon className="h-8 w-8 mb-2" />
+                        <themeOption.icon className="h-8 w-8 mb-2" />
                         <span className="text-sm font-medium">
-                          {t(`accountSettings.appearance.themes.${theme.value}`)}
+                          {t(`accountSettings.appearance.themes.${themeOption.value}`)}
                         </span>
                       </CardContent>
                     </Card>
@@ -448,7 +575,11 @@ export default function AccountSettings() {
                       } ${
                         appearance.accentColor === color ? 'ring-2 ring-offset-2 ring-primary' : ''
                       }`}
-                      onClick={() => setAppearance(prev => ({ ...prev, accentColor: color }))}
+                      onClick={() => {
+                        handleAutoSave(() => {
+                          setAppearance(prev => ({ ...prev, accentColor: color }));
+                        });
+                      }}
                     />
                   ))}
                 </div>
@@ -466,7 +597,11 @@ export default function AccountSettings() {
                   </div>
                   <Switch
                     checked={appearance.compactMode}
-                    onCheckedChange={(checked) => setAppearance(prev => ({ ...prev, compactMode: checked }))}
+                    onCheckedChange={(checked) => {
+                      handleAutoSave(() => {
+                        setAppearance(prev => ({ ...prev, compactMode: checked }));
+                      });
+                    }}
                     aria-label={t('accountSettings.appearance.options.compactMode.label')}
                   />
                 </div>
@@ -479,7 +614,11 @@ export default function AccountSettings() {
                   </div>
                   <Switch
                     checked={appearance.sidebarCollapsed}
-                    onCheckedChange={(checked) => setAppearance(prev => ({ ...prev, sidebarCollapsed: checked }))}
+                    onCheckedChange={(checked) => {
+                      handleAutoSave(() => {
+                        setAppearance(prev => ({ ...prev, sidebarCollapsed: checked }));
+                      });
+                    }}
                     aria-label={t('accountSettings.appearance.options.sidebarCollapsed.label')}
                   />
                 </div>
@@ -490,6 +629,29 @@ export default function AccountSettings() {
 
         {/* Security & Privacy Tab */}
         <TabsContent value="security" className="space-y-6">
+          {/* Auto-save info banner */}
+          {showAutoSaveBanner && (
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-900 p-2">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 self-center" />
+                  <AlertDescription className="text-blue-800 dark:text-blue-300">
+                    {t('accountSettings.autoSave.description')}
+                  </AlertDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900 flex-shrink-0"
+                  onClick={dismissAutoSaveBanner}
+                  aria-label={t('accountSettings.autoSave.dismiss')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </Alert>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -573,7 +735,11 @@ export default function AccountSettings() {
                       {t('accountSettings.security.privacy.profileVisibility.description')}
                     </p>
                   </div>
-                  <Select value={privacy.profileVisibility} onValueChange={(value) => setPrivacy(prev => ({ ...prev, profileVisibility: value }))}>
+                  <Select value={privacy.profileVisibility} onValueChange={(value) => {
+                    handleAutoSave(() => {
+                      setPrivacy(prev => ({ ...prev, profileVisibility: value }));
+                    });
+                  }}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -593,7 +759,11 @@ export default function AccountSettings() {
                   </div>
                   <Switch
                     checked={privacy.showOnlineStatus}
-                    onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, showOnlineStatus: checked }))}
+                    onCheckedChange={(checked) => {
+                      handleAutoSave(() => {
+                        setPrivacy(prev => ({ ...prev, showOnlineStatus: checked }));
+                      });
+                    }}
                     aria-label={t('accountSettings.security.privacy.showOnlineStatus.label')}
                   />
                 </div>
@@ -606,7 +776,11 @@ export default function AccountSettings() {
                   </div>
                   <Switch
                     checked={privacy.shareActivity}
-                    onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, shareActivity: checked }))}
+                    onCheckedChange={(checked) => {
+                      handleAutoSave(() => {
+                        setPrivacy(prev => ({ ...prev, shareActivity: checked }));
+                      });
+                    }}
                     aria-label={t('accountSettings.security.privacy.shareActivity.label')}
                   />
                 </div>
@@ -625,7 +799,11 @@ export default function AccountSettings() {
                   </div>
                   <Switch
                     checked={privacy.dataAnalytics}
-                    onCheckedChange={(checked) => setPrivacy(prev => ({ ...prev, dataAnalytics: checked }))}
+                    onCheckedChange={(checked) => {
+                      handleAutoSave(() => {
+                        setPrivacy(prev => ({ ...prev, dataAnalytics: checked }));
+                      });
+                    }}
                     aria-label={t('accountSettings.security.privacy.dataAnalytics.usageAnalytics.label')}
                   />
                 </div>

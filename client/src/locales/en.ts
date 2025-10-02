@@ -919,14 +919,24 @@ export const en = {
   },
   accountSettings: {
     header: {
+      title: "Account Settings",
       back: "Back",
       description: "Manage your personal account settings and preferences.",
     },
     actions: {
       saveChanges: "Save Changes",
+      saveProfile: "Save Profile",
+      saving: "Saving...",
+      cancel: "Cancel",
     },
     alert: {
       unsaved: 'You have unsaved changes. Click "{{action}}" to apply them.',
+    },
+    autoSave: {
+      description: "Your changes are automatically saved.",
+      saving: "Saving...",
+      saved: "Saved",
+      dismiss: "Dismiss",
     },
     tabs: {
       profile: "Profile",
