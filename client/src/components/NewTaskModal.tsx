@@ -15,6 +15,7 @@ import { ja as jaLocale } from "date-fns/locale";
 import { TaskStatus, TaskPriority } from "./TaskCard";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { sampleParticipants, sampleChannels } from "@/data/sampleWorkspace";
+import { projectDetailSeeds } from "@/data/projects/seeds";
 
 export interface NewTaskData {
   title: string;
@@ -25,6 +26,7 @@ export interface NewTaskData {
   dueDate?: Date;
   tags: string[];
   relatedChatId?: string;
+  projectId?: string;
   estimatedHours?: number;
 }
 
@@ -38,6 +40,9 @@ interface NewTaskModalProps {
 
 const statusOptions: TaskStatus[] = ["todo", "in-progress", "review", "done"];
 const priorityOptions: TaskPriority[] = ["low", "medium", "high", "urgent"];
+const NO_CHANNEL_VALUE = "__no_channel__";
+const NO_PROJECT_VALUE = "__no_project__";
+const NO_ASSIGNEE_VALUE = "__no_assignee__";
 
 export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent = "", relatedChatId }: NewTaskModalProps) {
   const { t, language } = useTranslation();
@@ -53,6 +58,7 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
       dueDate: undefined,
       tags: [],
       relatedChatId,
+      projectId: undefined,
       estimatedHours: undefined,
     }),
     [messageContent, relatedChatId]
@@ -68,6 +74,13 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
     () => sampleParticipants.filter((participant) => participant.id !== formData.assigneeId),
     [formData.assigneeId]
   );
+
+  const projectOptions = useMemo(() => {
+    return [
+      { id: NO_PROJECT_VALUE, name: t("tasks.create.fields.project.none") },
+      ...projectDetailSeeds.map((project) => ({ id: project.id, name: t(project.nameKey) })),
+    ];
+  }, [t]);
 
   const validateForm = () => {
     const nextErrors: typeof errors = {};
@@ -141,7 +154,7 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
       }
       onOpenChange(next);
     }}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("tasks.create.title")}</DialogTitle>
           <DialogDescription>{t("tasks.create.description")}</DialogDescription>
@@ -227,14 +240,14 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
           <div className="grid gap-2">
             <Label>{t("tasks.create.fields.assignee.label")}</Label>
             <Select
-              value={formData.assigneeId ?? ""}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, assigneeId: value || undefined }))}
+              value={formData.assigneeId ?? NO_ASSIGNEE_VALUE}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, assigneeId: value === NO_ASSIGNEE_VALUE ? undefined : value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t("tasks.create.fields.assignee.placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value={NO_ASSIGNEE_VALUE}>
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     {t("tasks.create.fields.assignee.unassigned")}
@@ -314,14 +327,16 @@ export function NewTaskModal({ open, onOpenChange, onTaskCreate, messageContent 
           <div className="grid gap-2">
             <Label>{t("tasks.create.fields.relatedChat.label")}</Label>
             <Select
-              value={formData.relatedChatId ?? ""}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, relatedChatId: value || undefined }))}
+              value={formData.relatedChatId ?? NO_CHANNEL_VALUE}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, relatedChatId: value === NO_CHANNEL_VALUE ? undefined : value }))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder={t("tasks.create.fields.relatedChat.placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value={NO_CHANNEL_VALUE}>
                   {t("tasks.create.fields.relatedChat.none")}
                 </SelectItem>
                 {sampleChannels.map((channel) => (

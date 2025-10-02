@@ -2,11 +2,19 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Video, Calendar, Users, FileText, MoreHorizontal, Clock, Play, CheckCircle, XCircle } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Video, Calendar, Users, FileText, MoreHorizontal, Clock, Play, CheckCircle, XCircle, Edit, Trash2, Copy, Share2, Star } from "lucide-react";
 import { format, formatDistanceToNow, isSameDay } from "date-fns";
 import type { Locale } from "date-fns";
 import { ja as jaLocale } from "date-fns/locale";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { getTagColor } from "@/utils/tagColors";
 
 export type MeetingStatus = "scheduled" | "ongoing" | "completed" | "cancelled";
 
@@ -30,6 +38,13 @@ interface MeetingCardProps {
   relatedChatId?: string;
   onJoin?: (meetingId: string) => void;
   onClick?: (meetingId: string) => void;
+  onEdit?: (meetingId: string) => void;
+  onDelete?: (meetingId: string) => void;
+  onDuplicate?: (meetingId: string) => void;
+  onShare?: (meetingId: string) => void;
+  onToggleFavorite?: (meetingId: string) => void;
+  onCancel?: (meetingId: string) => void;
+  isFavorite?: boolean;
   locale?: Locale;
 }
 
@@ -53,6 +68,13 @@ export function MeetingCard({
   relatedChatId,
   onJoin,
   onClick,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  onShare,
+  onToggleFavorite,
+  onCancel,
+  isFavorite = false,
   locale,
 }: MeetingCardProps) {
   const { t, language } = useTranslation();
@@ -60,22 +82,22 @@ export function MeetingCard({
   const derivedLocale = locale ?? (language === "ja" ? jaLocale : undefined);
   const statusConfig = {
     scheduled: {
-      color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
+      color: getTagColor("scheduled"),
       icon: Clock,
       label: t("meetings.card.status.upcoming"),
     },
     ongoing: {
-      color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 animate-pulse",
+      color: `${getTagColor("ongoing")} animate-live-slow`,
       icon: Play,
       label: t("meetings.card.status.live"),
     },
     completed: {
-      color: "bg-card text-card-foreground border-card-border dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800",
+      color: getTagColor("completed"),
       icon: CheckCircle,
       label: t("meetings.card.status.ended"),
     },
     cancelled: {
-      color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
+      color: getTagColor("cancelled"),
       icon: XCircle,
       label: t("meetings.card.status.cancelled"),
     },
@@ -117,34 +139,89 @@ export function MeetingCard({
 
   return (
     <Card
-      className="hover-elevate cursor-pointer group"
+      className="hover-elevate cursor-pointer group transition-all duration-200 hover:shadow-lg"
       onClick={handleCardClick}
       data-testid={`meeting-card-${id}`}
+      aria-label={`${title} - ${statusConfig[status].label}`}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <PlatformIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <h3 className="font-medium text-sm leading-tight truncate" data-testid={`meeting-title-${id}`}>
+            <h3 className="font-semibold text-sm sm:text-base leading-tight truncate" data-testid={`meeting-title-${id}`}>
               {title}
             </h3>
           </div>
           <div className="flex items-center gap-1">
             <Badge
-              className={`h-6 text-xs px-2 gap-1 ${statusConfig[status].color}`}
+              variant="outline"
+              className={`h-6 text-xs px-2 gap-1 transition-opacity duration-150 ${statusConfig[status].color}`}
               data-testid={`meeting-status-${id}`}
             >
               <StatusIcon className="w-3 h-3" />
               {statusConfig[status].label}
             </Badge>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100"
-              data-testid={`meeting-more-${id}`}
-            >
-              <MoreHorizontal className="h-3 w-3" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 opacity-50 group-hover:opacity-100 hover:bg-accent transition-all duration-150 sm:opacity-40"
+                  data-testid={`meeting-more-${id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={t("meetings.card.actions.menu")}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {onEdit && status !== "cancelled" && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(id); }}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    <span>{t("meetings.card.actions.edit")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onToggleFavorite && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleFavorite(id); }}>
+                    <Star className={`mr-2 h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                    <span>{isFavorite ? t("meetings.card.actions.unfavorite") : t("meetings.card.actions.favorite")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onDuplicate && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(id); }}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    <span>{t("meetings.card.actions.duplicate")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onShare && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(id); }}>
+                    <Share2 className="mr-2 h-4 w-4" />
+                    <span>{t("meetings.card.actions.share")}</span>
+                  </DropdownMenuItem>
+                )}
+                {onCancel && status === "scheduled" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCancel(id); }}>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      <span>{t("meetings.card.actions.cancel")}</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {onDelete && (status === "completed" || status === "cancelled") && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={(e) => { e.stopPropagation(); onDelete(id); }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>{t("meetings.card.actions.delete")}</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>

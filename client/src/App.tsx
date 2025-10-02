@@ -5,11 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { AppSidebar } from "@/components/AppSidebar";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { NotificationsProvider } from "@/components/NotificationPanel";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { WorkspaceDataProvider } from "@/contexts/WorkspaceDataContext";
 import { LanguageProvider, useTranslation } from "@/contexts/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -153,9 +153,6 @@ function AuthenticatedApp() {
                   <Input className="pl-10 w-60 rounded-md" placeholder={t('common.searchPlaceholder')} aria-label={t('header.searchLabel')} />
                 </div>
               </div>
-              <div className="hidden sm:block">
-                <ThemeToggle />
-              </div>
               <HeaderBellDropdown />
               <UserProfileDropdown collapsed={true} onLogout={handleLogout} />
             </div>
@@ -190,8 +187,10 @@ function AppRoot() {
         <TooltipProvider>
           <LanguageProvider>
             <AuthProvider>
-              <App />
-              <Toaster />
+              <WorkspaceDataProvider>
+                <App />
+                <Toaster />
+              </WorkspaceDataProvider>
             </AuthProvider>
           </LanguageProvider>
         </TooltipProvider>

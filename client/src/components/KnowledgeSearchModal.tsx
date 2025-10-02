@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Search, Share, ExternalLink, Clock, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useWorkspaceData } from "@/contexts/WorkspaceDataContext";
 
 interface KnowledgeSearchModalProps {
   isOpen: boolean;
@@ -29,81 +30,45 @@ export interface KnowledgeSearchArticle {
   relatedMeetingId?: string;
 }
 
-// Mock knowledge articles
-const mockKnowledgeArticles: KnowledgeSearchArticle[] = [
-  {
-    id: "kb-1",
-    title: "Authentication Setup Guide",
-    content: "Complete guide on setting up JWT-based authentication...",
-    summary: "Step-by-step guide for implementing JWT authentication in our application",
-    category: "Development",
-    tags: ["authentication", "jwt", "security", "backend"],
-    authorId: "john-doe",
-    authorName: "John Doe",
-    views: 45,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
-  },
-  {
-    id: "kb-2",
-    title: "API Documentation Standards",
-    content: "Our standards for documenting REST APIs...",
-    summary: "Guidelines and best practices for API documentation",
-    category: "Documentation",
-    tags: ["api", "documentation", "standards", "best-practices"],
-    authorId: "sarah-wilson",
-    authorName: "Sarah Wilson",
-    views: 32,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1),
-  },
-  {
-    id: "kb-3",
-    title: "Database Optimization Techniques",
-    content: "Performance optimization strategies for our database...",
-    summary: "Collection of database optimization techniques and query improvements",
-    category: "Development",
-    tags: ["database", "performance", "optimization", "sql"],
-    authorId: "mike-johnson",
-    authorName: "Mike Johnson",
-    views: 28,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1),
-  },
-  {
-    id: "kb-4",
-    title: "Troubleshooting Common Deploy Issues",
-    content: "Solutions for common deployment problems...",
-    summary: "Quick fixes for the most common deployment issues",
-    category: "Troubleshooting",
-    tags: ["deployment", "troubleshooting", "devops", "fixes"],
-    authorId: "alice-cooper",
-    authorName: "Alice Cooper",
-    views: 67,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-  },
-  {
-    id: "kb-5",
-    title: "UI Component Library Guidelines",
-    content: "Guidelines for using our shared UI components...",
-    summary: "Best practices for using and contributing to our UI component library",
-    category: "Design",
-    tags: ["ui", "components", "design-system", "frontend"],
-    authorId: "bob-smith",
-    authorName: "Bob Smith",
-    views: 41,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
-  },
-];
-
 export function KnowledgeSearchModal({ isOpen, onClose, onSelectKnowledge }: KnowledgeSearchModalProps) {
+  const { knowledgeArticles, getParticipantById } = useWorkspaceData();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchResults, setSearchResults] = useState<KnowledgeSearchArticle[]>(mockKnowledgeArticles);
+  const [searchResults, setSearchResults] = useState<KnowledgeSearchArticle[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const articles = useMemo<KnowledgeSearchArticle[]>(() => knowledgeArticles.map((article) => {
+    const participant = article.authorId ? getParticipantById(article.authorId) : undefined;
+    const authorName = article.authorName ?? participant?.name ?? 'Unknown author';
+    const authorId = article.authorId ?? participant?.id ?? 'unknown-author';
+
+    return {
+      id: article.id,
+      title: article.title,
+      content: article.content,
+      summary: article.summary,
+      category: article.category ?? 'General',
+      tags: article.tags,
+      authorId,
+      authorName,
+      views: article.views,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt ?? article.createdAt,
+      relatedChatId: article.relatedChatId,
+      relatedMeetingId: article.relatedMeetingId,
+    } satisfies KnowledgeSearchArticle;
+  }), [knowledgeArticles, getParticipantById]);
+
+  const categories = useMemo(() => {
+    const unique = new Set<string>();
+    articles.forEach((article) => {
+      if (article.category) {
+        unique.add(article.category);
+      }
+    });
+    return Array.from(unique).sort();
+  }, [articles]);
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -111,8 +76,7 @@ export function KnowledgeSearchModal({ isOpen, onClose, onSelectKnowledge }: Kno
   }, [isOpen]);
 
   useEffect(() => {
-    // Filter articles based on search query and category
-    let filtered = mockKnowledgeArticles;
+    let filtered = articles;
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -128,17 +92,15 @@ export function KnowledgeSearchModal({ isOpen, onClose, onSelectKnowledge }: Kno
       filtered = filtered.filter(article => article.category === selectedCategory);
     }
 
-    // Sort by relevance (views and recency)
-    filtered.sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       const aScore = a.views + (Date.now() - a.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
       const bScore = b.views + (Date.now() - b.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
       return bScore - aScore;
     });
 
-    setSearchResults(filtered);
-  }, [searchQuery, selectedCategory]);
+    setSearchResults(sorted);
+  }, [articles, searchQuery, selectedCategory]);
 
-  const categories = Array.from(new Set(mockKnowledgeArticles.map(article => article.category)));
 
   const handleSelectArticle = (article: KnowledgeSearchArticle) => {
     onSelectKnowledge(article);

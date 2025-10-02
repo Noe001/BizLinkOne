@@ -9,6 +9,13 @@ import {
 } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 
+// Common error handler
+function handleError(error: unknown, operation: string, res: any) {
+  console.error(`Error ${operation}:`, error);
+  const message = error instanceof Error ? error.message : `Failed to ${operation}`;
+  res.status(500).json({ error: message });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Chat Messages API
   app.get("/api/messages", async (req, res) => {
@@ -17,8 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages = await storage.getChatMessages(channelId as string);
       res.json(messages);
     } catch (error) {
-      console.error("Error getting messages:", error);
-      res.status(500).json({ error: "Failed to get messages" });
+      handleError(error, "get messages", res);
     }
   });
 
@@ -34,8 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = await storage.createChatMessage(result.data);
       res.status(201).json(message);
     } catch (error) {
-      console.error("Error creating message:", error);
-      res.status(500).json({ error: "Failed to create message" });
+      handleError(error, "create message", res);
     }
   });
 
@@ -45,8 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tasks = await storage.getTasks();
       res.json(tasks);
     } catch (error) {
-      console.error("Error getting tasks:", error);
-      res.status(500).json({ error: "Failed to get tasks" });
+      handleError(error, "get tasks", res);
     }
   });
 
@@ -58,8 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(task);
     } catch (error) {
-      console.error("Error getting task:", error);
-      res.status(500).json({ error: "Failed to get task" });
+      handleError(error, "get task", res);
     }
   });
 
@@ -75,8 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.createTask(result.data);
       res.status(201).json(task);
     } catch (error) {
-      console.error("Error creating task:", error);
-      res.status(500).json({ error: "Failed to create task" });
+      handleError(error, "create task", res);
     }
   });
 
@@ -95,8 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(task);
     } catch (error) {
-      console.error("Error updating task:", error);
-      res.status(500).json({ error: "Failed to update task" });
+      handleError(error, "update task", res);
     }
   });
 
@@ -106,8 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const articles = await storage.getKnowledgeArticles();
       res.json(articles);
     } catch (error) {
-      console.error("Error getting knowledge articles:", error);
-      res.status(500).json({ error: "Failed to get knowledge articles" });
+      handleError(error, "get knowledge articles", res);
     }
   });
 
@@ -123,8 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(article);
     } catch (error) {
-      console.error("Error getting knowledge article:", error);
-      res.status(500).json({ error: "Failed to get knowledge article" });
+      handleError(error, "get knowledge article", res);
     }
   });
 
@@ -140,8 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const article = await storage.createKnowledgeArticle(result.data);
       res.status(201).json(article);
     } catch (error) {
-      console.error("Error creating knowledge article:", error);
-      res.status(500).json({ error: "Failed to create knowledge article" });
+      handleError(error, "create knowledge article", res);
     }
   });
 
@@ -151,8 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meetings = await storage.getMeetings();
       res.json(meetings);
     } catch (error) {
-      console.error("Error getting meetings:", error);
-      res.status(500).json({ error: "Failed to get meetings" });
+      handleError(error, "get meetings", res);
     }
   });
 
@@ -164,8 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(meeting);
     } catch (error) {
-      console.error("Error getting meeting:", error);
-      res.status(500).json({ error: "Failed to get meeting" });
+      handleError(error, "get meeting", res);
     }
   });
 
@@ -181,8 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meeting = await storage.createMeeting(result.data);
       res.status(201).json(meeting);
     } catch (error) {
-      console.error("Error creating meeting:", error);
-      res.status(500).json({ error: "Failed to create meeting" });
+      handleError(error, "create meeting", res);
     }
   });
 
@@ -201,8 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(meeting);
     } catch (error) {
-      console.error("Error updating meeting:", error);
-      res.status(500).json({ error: "Failed to update meeting" });
+      handleError(error, "update meeting", res);
     }
   });
 
@@ -238,8 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(stats);
     } catch (error) {
-      console.error("Error getting stats:", error);
-      res.status(500).json({ error: "Failed to get stats" });
+      handleError(error, "get stats", res);
     }
   });
 

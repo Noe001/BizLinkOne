@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Settings, User, LogOut, HelpCircle, Moon, Bell, Shield, Palette, Globe } from "lucide-react";
+import { Settings, LogOut, HelpCircle, Globe } from "lucide-react";
 import { Link } from "wouter";
 import { useTranslation } from '@/contexts/LanguageContext';
 import type { SupportedLanguage } from '@/locales';
@@ -48,7 +48,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
-          className={collapsed ? "p-2 h-auto w-auto" : "w-full justify-start p-2 h-auto hover:bg-accent px-3"}
+          className={collapsed ? "p-2 h-auto w-auto transition-all duration-150 hover:scale-105" : "w-full justify-start p-2 h-auto hover:bg-accent px-3 transition-all duration-150"}
           data-testid="user-profile-dropdown"
         >
           {collapsed ? (
@@ -59,7 +59,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                   {mockUser.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-background" />
+              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background animate-pulse" />
             </div>
           ) : (
             <div className="flex items-center gap-3 w-full">
@@ -70,7 +70,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                     {mockUser.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-background" />
+                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background animate-pulse" />
               </div>
               
               <div className="flex-1 min-w-0 text-left">
@@ -83,7 +83,7 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                 <p className="text-xs text-muted-foreground truncate">{mockUser.email}</p>
               </div>
               
-              <Settings className="h-4 w-4 text-muted-foreground" />
+              <Settings className="h-4 w-4 text-muted-foreground transition-transform duration-150 group-hover:rotate-90" />
             </div>
           )}
         </Button>
@@ -120,47 +120,9 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
         
         <DropdownMenuItem asChild>
           <Link href="/account-settings" className="flex items-center gap-3 cursor-pointer">
-            <User className="h-4 w-4" />
-            <span>{t('userMenu.viewProfile')}</span>
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
-          <Link href="/account-settings" className="flex items-center gap-3 cursor-pointer">
             <Settings className="h-4 w-4" />
             <span>{t('userMenu.accountSettings')}</span>
           </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
-          <Link href="/account-settings?tab=appearance" className="flex items-center gap-3 cursor-pointer">
-            <Palette className="h-4 w-4" />
-            <span>{t('userMenu.preferences')}</span>
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
-          <Link href="/account-settings?tab=notifications" className="flex items-center gap-3 cursor-pointer">
-            <Bell className="h-4 w-4" />
-            <span>{t('userMenu.notifications')}</span>
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem asChild>
-          <Link href="/account-settings?tab=security" className="flex items-center gap-3 cursor-pointer">
-            <Shield className="h-4 w-4" />
-            <span>{t('userMenu.securityPrivacy')}</span>
-          </Link>
-        </DropdownMenuItem>
-        
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem className="flex items-center gap-3 cursor-pointer">
-          <Moon className="h-4 w-4" />
-          <span>{t('userMenu.darkMode')}</span>
-          <Badge variant="secondary" className="ml-auto text-xs">
-            {t('userMenu.auto')}
-          </Badge>
         </DropdownMenuItem>
         
         <DropdownMenuSub>

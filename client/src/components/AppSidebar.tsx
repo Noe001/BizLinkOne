@@ -74,7 +74,7 @@ export function AppSidebar() {
           <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-md">
             <MessageSquare className="w-4 h-4" />
           </div>
-          <span className="font-semibold text-lg font-mono">WorkflowHub</span>
+          <span className="font-semibold text-lg font-mono">BizLinkOne</span>
         </div>
       </SidebarHeader>
 

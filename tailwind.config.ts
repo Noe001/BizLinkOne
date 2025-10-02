@@ -81,7 +81,8 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
-        // Cohere section colors
+        // Legacy section colors (for backward compatibility)
+        // Prefer using standard Tailwind colors (blue-*, red-*, etc.) in new code
         "cohere-blue": {
           50: "rgb(239 246 255)",
           200: "rgb(191 219 254)",

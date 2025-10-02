@@ -155,7 +155,7 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreate }: CreateP
         onClose();
       }
     }}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("projects.create.title")}</DialogTitle>
           <DialogDescription>{t("projects.create.description")}</DialogDescription>

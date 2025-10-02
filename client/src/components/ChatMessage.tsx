@@ -1,8 +1,16 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckSquare, BookOpen, MoreHorizontal, Reply } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { CheckSquare, BookOpen, MoreHorizontal, Reply, Edit, Trash2, Copy, Pin, Flag, Share2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useTranslation } from "@/contexts/LanguageContext";
 
 interface ChatMessageProps {
   id: string;
@@ -18,15 +26,23 @@ interface ChatMessageProps {
   threadId?: string;
   threadCount?: number;
   lastThreadReply?: Date;
+  isPinned?: boolean;
   canConvertToTask?: boolean;
   canConvertToKnowledge?: boolean;
   onRequestTaskCreation?: (messageId: string) => void;
   onRequestKnowledgeCreation?: (messageId: string) => void;
   onReply?: (messageId: string) => void;
   onViewThread?: (messageId: string) => void;
+  onEdit?: (messageId: string) => void;
+  onDelete?: (messageId: string) => void;
+  onCopy?: (messageId: string) => void;
+  onPin?: (messageId: string) => void;
+  onFlag?: (messageId: string) => void;
+  onShare?: (messageId: string) => void;
 }
 
 export function ChatMessage(props: ChatMessageProps) {
+  const { t } = useTranslation();
   const {
     id,
     userName,
@@ -37,12 +53,19 @@ export function ChatMessage(props: ChatMessageProps) {
     isUnread = false,
     isFirstUnread = false,
     threadCount = 0,
+    isPinned = false,
     canConvertToTask = true,
     canConvertToKnowledge = true,
     onRequestTaskCreation,
     onRequestKnowledgeCreation,
     onReply,
     onViewThread,
+    onEdit,
+    onDelete,
+    onCopy,
+    onPin,
+    onFlag,
+    onShare,
   } = props;
 
   const handleConvertToTask = () => {
@@ -54,12 +77,10 @@ export function ChatMessage(props: ChatMessageProps) {
   };
 
   const handleReply = () => {
-    console.log(`Replying to message ${id}`);
     onReply?.(id);
   };
 
   const handleViewThread = () => {
-    console.log(`Viewing thread for message ${id}`);
     onViewThread?.(id);
   };
 
@@ -111,17 +132,17 @@ export function ChatMessage(props: ChatMessageProps) {
             {isOwn && <Badge variant="outline" className="text-xs">You</Badge>}
 
             {/* controls: align to far right for non-own, keep on right for own */}
-            <div className={`${isOwn ? '' : 'ml-auto'} flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1`}>
+            <div className={`${isOwn ? '' : 'ml-auto'} flex items-center opacity-40 group-hover:opacity-100 transition-all duration-150 gap-1`}>
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={handleReply}
                 data-testid={`button-reply-${id}`}
                 className="h-8 px-4 rounded flex items-center gap-2 min-w-[88px] flex-shrink-0 whitespace-nowrap"
-                title="Reply to message"
+                title={t("chat.message.actions.reply")}
               >
                 <Reply className="w-4 h-4" />
-                <span className="text-xs text-muted-foreground hidden md:inline">Reply</span>
+                <span className="text-xs text-muted-foreground hidden md:inline">{t("chat.message.actions.reply")}</span>
                 {threadCount > 0 && (
                   <span className="text-xs font-medium text-muted-foreground ml-1">{threadCount}</span>
                 )}
@@ -134,10 +155,10 @@ export function ChatMessage(props: ChatMessageProps) {
                   onClick={handleConvertToTask}
                   data-testid={`button-task-${id}`}
                   className="h-8 px-3 rounded flex items-center gap-2 min-w-[80px] flex-shrink-0 whitespace-nowrap"
-                  title="Convert to task"
+                  title={t("chat.message.actions.task")}
                 >
                   <CheckSquare className="w-4 h-4" />
-                  <span className="text-xs text-muted-foreground hidden md:inline">Task</span>
+                  <span className="text-xs text-muted-foreground hidden md:inline">{t("chat.message.actions.task")}</span>
                 </Button>
               )}
 
@@ -148,22 +169,71 @@ export function ChatMessage(props: ChatMessageProps) {
                   onClick={handleConvertToKnowledge}
                   data-testid={`button-knowledge-${id}`}
                   className="h-8 px-3 rounded flex items-center gap-2 min-w-[96px] flex-shrink-0 whitespace-nowrap"
-                  title="Convert to knowledge"
+                  title={t("chat.message.actions.knowledge")}
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span className="text-xs text-muted-foreground hidden md:inline">Knowledge</span>
+                  <span className="text-xs text-muted-foreground hidden md:inline">{t("chat.message.actions.knowledge")}</span>
                 </Button>
               )}
 
-              <Button
-                size="icon"
-                variant="ghost"
-                data-testid={`button-more-${id}`}
-                className="h-7 w-7"
-                title="More options"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    data-testid={`button-more-${id}`}
+                    className="h-7 w-7"
+                    title={t("chat.message.actions.more")}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {isOwn && onEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(id)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      <span>{t("chat.message.actions.edit")}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onCopy && (
+                    <DropdownMenuItem onClick={() => onCopy(id)}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      <span>{t("chat.message.actions.copy")}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onPin && (
+                    <DropdownMenuItem onClick={() => onPin(id)}>
+                      <Pin className={`mr-2 h-4 w-4 ${isPinned ? 'fill-current' : ''}`} />
+                      <span>{isPinned ? t("chat.message.actions.unpin") : t("chat.message.actions.pin")}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onShare && (
+                    <DropdownMenuItem onClick={() => onShare(id)}>
+                      <Share2 className="mr-2 h-4 w-4" />
+                      <span>{t("chat.message.actions.share")}</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  {onFlag && (
+                    <DropdownMenuItem onClick={() => onFlag(id)}>
+                      <Flag className="mr-2 h-4 w-4" />
+                      <span>{t("chat.message.actions.flag")}</span>
+                    </DropdownMenuItem>
+                  )}
+                  {isOwn && onDelete && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>{t("chat.message.actions.delete")}</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 

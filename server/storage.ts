@@ -203,8 +203,12 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
-    // Seed chat messages
     const now = new Date();
+    const MINUTES = 60 * 1000;
+    const HOURS = 60 * MINUTES;
+    const DAYS = 24 * HOURS;
+
+    // Seed chat messages
     const messages: ChatMessage[] = [
       {
         id: randomUUID(),
@@ -213,7 +217,7 @@ export class MemStorage implements IStorage {
         content: "The new authentication system is ready for testing. Can someone review the PR?",
         channelId: "general",
         channelType: "channel",
-        timestamp: new Date(now.getTime() - 15 * 60 * 1000),
+        timestamp: new Date(now.getTime() - 15 * MINUTES),
       },
       {
         id: randomUUID(),
@@ -222,7 +226,7 @@ export class MemStorage implements IStorage {
         content: "I've updated the API documentation with the latest endpoints.",
         channelId: "general",
         channelType: "channel",
-        timestamp: new Date(now.getTime() - 30 * 60 * 1000),
+        timestamp: new Date(now.getTime() - 30 * MINUTES),
       },
     ];
     messages.forEach(msg => this.chatMessages.set(msg.id, msg));
@@ -237,7 +241,7 @@ export class MemStorage implements IStorage {
         priority: "high",
         assigneeId: "current",
         assigneeName: "You",
-        dueDate: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+        dueDate: new Date(now.getTime() + DAYS),
         createdAt: now,
       },
       {
@@ -248,7 +252,7 @@ export class MemStorage implements IStorage {
         priority: "medium",
         assigneeId: "sarah",
         assigneeName: "Sarah Wilson",
-        dueDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+        dueDate: new Date(now.getTime() + 3 * DAYS),
         createdAt: now,
       },
     ];
@@ -265,8 +269,8 @@ export class MemStorage implements IStorage {
         authorId: "john",
         authorName: "John Doe",
         views: 45,
-        createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+        createdAt: new Date(now.getTime() - DAYS),
+        updatedAt: new Date(now.getTime() - DAYS),
       },
     ];
     articles.forEach(article => this.knowledgeArticles.set(article.id, article));
@@ -277,14 +281,14 @@ export class MemStorage implements IStorage {
         id: randomUUID(),
         title: "Daily Standup",
         description: "Daily team sync meeting",
-        startTime: new Date(now.getTime() + 30 * 60 * 1000),
-        endTime: new Date(now.getTime() + 60 * 60 * 1000),
+        startTime: new Date(now.getTime() + 30 * MINUTES),
+        endTime: new Date(now.getTime() + HOURS),
         status: "scheduled",
         participants: [
           { id: "john", name: "John Doe" },
           { id: "sarah", name: "Sarah Wilson" },
           { id: "mike", name: "Mike Johnson" },
-        ] as Array<{id: string; name: string}>,
+        ],
         meetingUrl: "https://meet.google.com/abc-def-ghi",
         createdAt: now,
       },

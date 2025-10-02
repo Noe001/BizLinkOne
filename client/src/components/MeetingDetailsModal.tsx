@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Video, Calendar, Clock, Users, MessageSquare, CheckSquare, BookOpen, Copy, Share } from "lucide-react";
@@ -85,7 +84,6 @@ export function MeetingDetailsModal({
   locale,
 }: MeetingDetailsModalProps) {
   const { t, language } = useTranslation();
-  const [activeTab, setActiveTab] = useState("overview");
   const [newActionItem, setNewActionItem] = useState("");
   const [newDecision, setNewDecision] = useState("");
   const [meetingNotes, setMeetingNotes] = useState(meeting.notes || "");
@@ -165,23 +163,17 @@ export function MeetingDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader className="space-y-2">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden flex flex-col">
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 space-y-2">
           <DialogTitle className="text-2xl font-semibold">{meeting.title}</DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             {t("meetings.details.subtitle")}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid grid-cols-4">
-            <TabsTrigger value="overview">{t("meetings.details.tabs.overview")}</TabsTrigger>
-            <TabsTrigger value="notes">{t("meetings.details.tabs.notes")}</TabsTrigger>
-            <TabsTrigger value="actions">{t("meetings.details.tabs.actions")}</TabsTrigger>
-            <TabsTrigger value="recordings">{t("meetings.details.tabs.recordings")}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6 mt-6">
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <div className="space-y-6">
+            {/* Overview Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
@@ -254,10 +246,16 @@ export function MeetingDetailsModal({
                 )}
               </div>
             </div>
-          </TabsContent>
 
-          <TabsContent value="notes" className="space-y-4 mt-6">
+            <Separator />
+
+            {/* Notes Section */}
             <div>
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">{t("meetings.details.notes.title")}</h3>
+              </div>
+              <div>
               <Label htmlFor="meeting-notes" className="text-sm font-medium">{t("meetings.details.notes.title")}</Label>
               <Textarea
                 id="meeting-notes"
@@ -268,7 +266,7 @@ export function MeetingDetailsModal({
                 className="mt-2"
                 data-testid="meeting-notes-textarea"
               />
-            </div>
+            
 
             <div>
               <Label className="text-sm font-medium">{t("meetings.details.decisions.title")}</Label>
@@ -318,10 +316,17 @@ export function MeetingDetailsModal({
                 {t("meetings.details.notes.shareSummary")}
               </Button>
             </div>
-          </TabsContent>
+            </div>
+            </div>
 
-          <TabsContent value="actions" className="space-y-4 mt-6">
+            <Separator />
+
+            {/* Action Items Section */}
             <div>
+              <div className="flex items-center gap-2 mb-3">
+                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">{t("meetings.details.actions.title")}</h3>
+              </div>
               <Label className="text-sm font-medium">{t("meetings.details.actions.title")}</Label>
               <div className="space-y-2 mt-2">
                 {meeting.actionItems?.map((item) => (
@@ -387,10 +392,15 @@ export function MeetingDetailsModal({
                 </div>
               </div>
             </div>
-          </TabsContent>
 
-          <TabsContent value="recordings" className="space-y-4 mt-6">
+            <Separator />
+
+            {/* Recordings Section */}
             <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Video className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">{t("meetings.details.recordings.title")}</h3>
+              </div>
               <Label className="text-sm font-medium">{t("meetings.details.recordings.title")}</Label>
               <div className="space-y-2 mt-2">
                 {meeting.recordings && meeting.recordings.length > 0 ? (
@@ -423,12 +433,10 @@ export function MeetingDetailsModal({
                 )}
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
-        <Separator className="my-4" />
-
-        <DialogFooter>
+        <DialogFooter className="px-6 pb-6 flex-shrink-0">
           <Button variant="outline" onClick={onClose}>
             {t("meetings.details.footer.close")}
           </Button>
