@@ -1754,7 +1754,7 @@ export const en = {
         done: "Done",
       },
       due: {
-        today: "Due today E {{date}}",
+        today: "Due today • {{date}}",
         future: "Due {{date}} (in {{days}} days)",
         past: "Overdue {{date}} ({{days}} days ago)",
       },
@@ -2479,7 +2479,7 @@ export const en = {
         options: {
           recent: "Most recent",
           popular: "Most viewed",
-          alphabetical: "A  Z",
+          alphabetical: "A → Z",
           oldest: "Oldest",
         },
       },
