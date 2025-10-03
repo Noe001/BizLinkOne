@@ -80,12 +80,12 @@ export function KnowledgeCard({
 
   return (
     <Card
-      className="hover-elevate cursor-pointer group h-full transition-all duration-200 hover:shadow-lg"
+      className="hover-elevate cursor-pointer group h-full transition-all duration-200 hover:shadow-lg active:scale-[0.98] touch-manipulation"
       onClick={handleCardClick}
       data-testid={`knowledge-card-${id}`}
       aria-label={`${title} - ${authorName}`}
     >
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3 sm:pb-4">
           <div className="flex items-start justify-between gap-2 sm:gap-3">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <BookOpen className="w-4 h-4 text-muted-foreground flex-shrink-0" />

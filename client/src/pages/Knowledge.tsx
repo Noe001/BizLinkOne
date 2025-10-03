@@ -350,14 +350,14 @@ ${summary}
     <div className="flex h-full flex-col lg:flex-row">
       <div className="flex-1 page-container">
         <div className="page-header">
-          <p className="text-muted-foreground max-w-3xl">{t("knowledge.header.description")}</p>
-          <Button onClick={() => setCreateModalOpen(true)}>
+          <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">{t("knowledge.header.description")}</p>
+          <Button onClick={() => setCreateModalOpen(true)} className="h-9 sm:h-10 touch-manipulation">
             <Plus className="h-4 w-4 mr-2" />
             {t("knowledge.actions.new")}
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 md:gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-sm font-medium">{t("knowledge.stats.totalArticles.title")}</CardTitle>
@@ -439,8 +439,8 @@ ${summary}
           </div>
 
           {showAdvancedFilters && (
-            <Card className="p-4 space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
                 <div>
                   <label className="text-sm font-medium mb-2 block">{t("knowledge.filters.tag.label")}</label>
                   <Select value={selectedTag} onValueChange={setSelectedTag}>
@@ -533,7 +533,7 @@ ${summary}
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6" data-testid="knowledge-grid">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6" data-testid="knowledge-grid">
             {[...Array(6)].map((_, index) => (
               <KnowledgeSkeleton key={`skeleton-${index}`} />
             ))}
@@ -555,7 +555,7 @@ ${summary}
             }
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6" data-testid="knowledge-grid">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6" data-testid="knowledge-grid">
             {filteredArticles.map((article) => (
               <KnowledgeCard
                 key={article.id}

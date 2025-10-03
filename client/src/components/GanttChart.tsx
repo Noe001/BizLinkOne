@@ -119,9 +119,9 @@ export function GanttChart({ tasks, onTaskClick, onTaskUpdate }: GanttChartProps
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
             {t("projects.timeline.title")}
           </CardTitle>
 
@@ -131,28 +131,36 @@ export function GanttChart({ tasks, onTaskClick, onTaskUpdate }: GanttChartProps
               size="sm"
               onClick={() => navigateWeek("prev")}
               aria-label={t("projects.timeline.actions.previous")}
+              className="h-8 w-8 p-0 sm:h-9 sm:w-9 touch-manipulation"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium min-w-[200px] text-center">
-              {formatWeekLabel(weekStart, language === "ja" ? "M月d日" : "MMM d")} - {formatWeekLabel(weekEnd, language === "ja" ? "M月d日, yyyy" : "MMM d, yyyy")}
+            <span className="text-xs sm:text-sm font-medium min-w-[140px] sm:min-w-[200px] text-center">
+              {formatWeekLabel(weekStart, language === "ja" ? "M/d" : "MMM d")} - {formatWeekLabel(weekEnd, language === "ja" ? "M/d" : "MMM d")}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigateWeek("next")}
               aria-label={t("projects.timeline.actions.next")}
+              className="h-8 w-8 p-0 sm:h-9 sm:w-9 touch-manipulation"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setCurrentWeek(new Date())}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentWeek(new Date())}
+              className="h-8 px-2 sm:h-9 sm:px-3 text-xs sm:text-sm touch-manipulation"
+            >
               {t("projects.timeline.actions.today")}
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="overflow-x-auto">
+        <div className="min-w-[600px]">
         <div className="grid grid-cols-12 gap-2 mb-4 text-xs font-medium text-muted-foreground">
           <div className="col-span-4 flex items-center gap-2">
             <CheckSquare className="h-3 w-3" />
@@ -268,6 +276,7 @@ export function GanttChart({ tasks, onTaskClick, onTaskUpdate }: GanttChartProps
               </div>
             </div>
           ))}
+        </div>
         </div>
 
         {tasks.length === 0 && (

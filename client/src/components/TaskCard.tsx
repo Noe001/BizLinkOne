@@ -129,7 +129,7 @@ export function TaskCard({
   return (
     <TooltipProvider>
       <Card 
-        className={`hover-elevate cursor-pointer group transition-all duration-200 hover:shadow-lg ${
+        className={`hover-elevate cursor-pointer group transition-all duration-200 hover:shadow-lg active:scale-[0.98] touch-manipulation ${
           isOverdue ? 'border-2 border-red-500 dark:border-red-600' : 
           isDueSoon ? 'border-2 border-amber-500 dark:border-amber-600' : ''
         }`}
@@ -137,7 +137,7 @@ export function TaskCard({
         data-testid={`task-card-${id}`}
         aria-label={`${title} - ${statusConfig[status].label} - ${priorityConfig[priority].label}`}
       >
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-3 sm:pb-4">
           <div className="flex items-start justify-between gap-2 sm:gap-3">
             <div className="flex-1 min-w-0">
               {tags && tags.length > 0 && (
@@ -164,11 +164,11 @@ export function TaskCard({
               </div>
 
               <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 className="font-semibold text-base sm:text-lg leading-tight" data-testid={`task-title-${id}`}>
+                <h3 className="font-semibold text-base sm:text-base leading-tight flex-1" data-testid={`task-title-${id}`}>
                   {title}
                 </h3>
                 {projectName && (
-                  <Badge variant="outline" className="text-[10px] font-medium" data-testid={`task-project-${id}`}>
+                  <Badge variant="outline" className="text-[10px] font-medium shrink-0" data-testid={`task-project-${id}`}>
                     {projectName}
                   </Badge>
                 )}

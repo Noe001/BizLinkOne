@@ -182,8 +182,8 @@ export default function Projects() {
   return (
     <div className="page-container" data-testid="page-projects">
       <div className="page-header">
-        <p className="text-muted-foreground max-w-3xl">{t("projects.header.description")}</p>
-        <Button data-testid="button-new-project" onClick={() => setCreateModalOpen(true)}>
+        <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">{t("projects.header.description")}</p>
+        <Button data-testid="button-new-project" onClick={() => setCreateModalOpen(true)} className="h-9 sm:h-10 touch-manipulation">
           <Plus className="h-4 w-4 mr-2" />
           {t("projects.actions.new")}
         </Button>
@@ -216,15 +216,18 @@ export default function Projects() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <TabsTrigger value="overview">{t("projects.tabs.overview")}</TabsTrigger>
-          <TabsTrigger value="timeline">{t("projects.tabs.timeline")}</TabsTrigger>
-          <TabsTrigger value="tasks">{t("projects.tabs.tasks")}</TabsTrigger>
-          <TabsTrigger value="analytics">{t("projects.tabs.analytics")}</TabsTrigger>
+        <div className="overflow-x-auto rounded-full bg-card/80 p-1 shadow-sm sm:bg-transparent sm:p-0 sm:shadow-none">
+        <TabsList className="grid w-full min-w-[20rem] grid-cols-2 gap-1 sm:min-w-0 sm:flex sm:w-auto">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm rounded-full px-3 py-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">{t("projects.tabs.overview")}</TabsTrigger>
+          <TabsTrigger value="timeline" className="text-xs sm:text-sm rounded-full px-3 py-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">{t("projects.tabs.timeline")}</TabsTrigger>
+          <TabsTrigger value="tasks" className="text-xs sm:text-sm rounded-full px-3 py-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">{t("projects.tabs.tasks")}</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm rounded-full px-3 py-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">{t("projects.tabs.analytics")}</TabsTrigger>
         </TabsList>
+      </div>
+
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 md:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("projects.overview.stats.total.title")}</CardTitle>
@@ -275,7 +278,7 @@ export default function Projects() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 md:gap-6">
             {filteredProjects.map((project) => (
               <Card
                 key={project.id}
@@ -396,20 +399,24 @@ export default function Projects() {
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-6">
-          <GanttChart
-            tasks={timelineTasks.map((task) => ({
-              id: task.id,
-              title: task.title,
-              startDate: task.startDate,
-              endDate: task.endDate,
-              progress: task.progress,
-              status: task.status,
-              assignee: task.assignee,
-              project: task.projectName,
-              priority: task.priority,
-            }))}
-            onTaskClick={handleTaskClick}
-          />
+          <div className="rounded-lg border border-card-border bg-card p-2 sm:p-4 shadow-sm">
+            <div className="overflow-x-auto">
+              <GanttChart
+                tasks={timelineTasks.map((task) => ({
+                  id: task.id,
+                  title: task.title,
+                  startDate: task.startDate,
+                  endDate: task.endDate,
+                  progress: task.progress,
+                  status: task.status,
+                  assignee: task.assignee,
+                  project: task.projectName,
+                  priority: task.priority,
+                }))}
+                onTaskClick={handleTaskClick}
+              />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">

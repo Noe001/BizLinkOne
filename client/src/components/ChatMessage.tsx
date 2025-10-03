@@ -99,22 +99,13 @@ export function ChatMessage(props: ChatMessageProps) {
         </div>
       )}
 
-      <div 
-        className={`group relative flex gap-3 p-2 mx-1 hover:bg-accent/20 rounded cursor-pointer ${
-          isUnread 
-            ? 'bg-card border-b border-card-border' 
-            : ''
-        } ${isOwn ? 'flex-row-reverse' : ''}`} 
-        data-testid={`message-${id}`}
-        onClick={threadCount > 0 ? handleViewThread : undefined}
-        role={threadCount > 0 ? "button" : undefined}
-        tabIndex={threadCount > 0 ? 0 : undefined}
-        onKeyDown={threadCount > 0 ? (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleViewThread();
-          }
-        } : undefined}
+            <div
+        className={`group flex gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3 hover:bg-accent/50 transition-colors touch-manipulation ${
+          isUnread ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
+        } ${isPinned ? "bg-amber-50/30 dark:bg-amber-950/10" : ""}`}
+        data-testid={`chat-message-${id}`}
+        role="article"
+        aria-label={`Message from ${userName}`}
       >
         <Avatar className="w-8 h-8 flex-shrink-0 mt-0.5">
           <AvatarImage src={userAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`} />

@@ -450,17 +450,17 @@ export default function Meetings() {
   return (
     <div className="page-container" data-testid="page-meetings">
       <div className="page-header">
-        <p className="text-muted-foreground max-w-3xl">
+        <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">
           {t("meetings.header.description")}
         </p>
-        <Button onClick={() => setShowCreateModal(true)} data-testid="button-new-meeting">
+        <Button onClick={() => setShowCreateModal(true)} data-testid="button-new-meeting" className="h-9 sm:h-10 touch-manipulation">
           <Plus className="h-4 w-4 mr-2" />
           {t("meetings.actions.schedule")}
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
@@ -468,7 +468,7 @@ export default function Meetings() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4 md:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <Card data-testid="stat-total-meetings" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("meetings.stats.total.label")}</CardTitle>
@@ -682,7 +682,7 @@ export default function Meetings() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6" data-testid="meetings-grid">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 md:gap-6" data-testid="meetings-grid">
           {[...Array(6)].map((_, index) => (
             <MeetingSkeleton key={index} />
           ))}
@@ -704,7 +704,7 @@ export default function Meetings() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:gap-6" data-testid="meetings-grid">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 md:gap-6" data-testid="meetings-grid">
           {filteredMeetings.map((meeting) => (
             <MeetingCard
               key={meeting.id}

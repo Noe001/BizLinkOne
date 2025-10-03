@@ -45,13 +45,15 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          className={collapsed ? "p-2 h-auto w-auto transition-all duration-150 hover:scale-105" : "w-full justify-start p-2 h-auto hover:bg-accent px-3 transition-all duration-150"}
-          data-testid="user-profile-dropdown"
-        >
-          {collapsed ? (
+      {/* Avatar becomes the menu trigger button; only the avatar is clickable */}
+      {collapsed ? (
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            data-testid="user-profile-dropdown"
+            className="p-2 h-auto w-auto rounded-full"
+            aria-label={mockUser.name}
+          >
             <div className="relative">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={mockUser.avatar} alt={mockUser.name} />
@@ -59,10 +61,19 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                   {mockUser.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background animate-pulse" />
+              <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background" />
             </div>
-          ) : (
-            <div className="flex items-center gap-3 w-full">
+          </button>
+        </DropdownMenuTrigger>
+      ) : (
+        <div className="flex items-center gap-3 w-full">
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              data-testid="user-profile-dropdown"
+              className="p-2 h-auto w-auto rounded-full"
+              aria-label={mockUser.name}
+            >
               <div className="relative">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={mockUser.avatar} alt={mockUser.name} />
@@ -70,24 +81,24 @@ export function UserProfileDropdown({ collapsed = false, onLogout }: UserProfile
                     {mockUser.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background animate-pulse" />
+                <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 dark:bg-green-400 rounded-full border-2 border-background" />
               </div>
-              
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium truncate">{mockUser.name}</span>
-                  <Badge variant="outline" className="text-xs px-1.5 py-0">
-                    {mockUser.role}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{mockUser.email}</p>
-              </div>
-              
-              <Settings className="h-4 w-4 text-muted-foreground transition-transform duration-150 group-hover:rotate-90" />
+            </button>
+          </DropdownMenuTrigger>
+
+          <div className="flex-1 min-w-0 text-left">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium truncate">{mockUser.name}</span>
+              <Badge variant="outline" className="text-xs px-1.5 py-0">
+                {mockUser.role}
+              </Badge>
             </div>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
+            <p className="text-xs text-muted-foreground truncate">{mockUser.email}</p>
+          </div>
+
+          <Settings className="h-4 w-4 text-muted-foreground transition-transform duration-150" />
+        </div>
+      )}
       
       <DropdownMenuContent 
         className="w-64" 

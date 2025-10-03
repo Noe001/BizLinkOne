@@ -12,6 +12,7 @@ import { CreateKnowledgeModal, type CreateKnowledgeData } from "@/components/Cre
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 import { matchFaq, type FaqEntry } from "@/data/faqs";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -19,6 +20,7 @@ import type { MessageModalContext } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspaceData } from "@/contexts/WorkspaceDataContext";
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChannelInfo {
   name: string;
@@ -57,6 +59,8 @@ export default function Chat() {
   const currentUserId = user?.id ?? "user-1";
   const currentUserName = user?.name ?? "You";
   const { createTask: createWorkspaceTask, createKnowledge: createWorkspaceKnowledge } = useWorkspaceData();
+
+  const isMobile = useIsMobile();
 
   // Support both channel and DM routes
   const [matchType, paramsType] = useRoute("/chat/:type/:id");
@@ -107,7 +111,7 @@ export default function Chat() {
         const errorText = await response.text();
         throw new Error(errorText || response.statusText);
       }
-      return (await response.json()) as ChatMessageType[];
+  return (await response.json()) as ChatMessageType[];
     },
   });
 
@@ -392,21 +396,45 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
     setThreadMessages(prev => [...prev, newReply]);
   };
 
+  const activeThreadParent = selectedThread
+    ? messages.find(m => m.id === selectedThread)
+    : undefined;
+
   return (
-    <div className="flex h-full bg-background rounded-md">
-      {/* Main Chat Container */}
-      <div className={`flex flex-col bg-card border border-card-border rounded-lg ${selectedThread ? 'flex-1 mr-2' : 'w-full'}`} data-testid="page-chat">
-        {/* Chat Header - Enhanced with filters */}
-        <div className="border-b border-card-border bg-card p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
+    <div
+      className={cn(
+        "flex h-full rounded-md bg-background",
+        isMobile && "flex-col rounded-none bg-transparent"
+      )}
+    >
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col rounded-lg border border-card-border bg-card",
+          selectedThread ? "lg:mr-2" : "w-full",
+          isMobile && "border-0 rounded-none shadow-none"
+        )}
+        data-testid="page-chat"
+      >
+        <div
+          className={cn(
+            "border-b border-card-border bg-card p-4",
+            isMobile && "sticky top-0 z-20 bg-card/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+          )}
+        >
+          <div
+            className={cn(
+              "flex flex-wrap items-start justify-between gap-4",
+              isMobile && "flex-col"
+            )}
+          >
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex items-start gap-2">
                 {channelInfo.isChannel ? (
                   <>
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg">
-                      <Hash className="h-4 w-4 text-green-700" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Hash className="h-4 w-4" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h1 className="text-lg font-semibold" data-testid="chat-title">
                         {channelInfo.name}
                       </h1>
@@ -417,10 +445,10 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                       <Users className="h-4 w-4 text-primary" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h1 className="text-lg font-semibold" data-testid="chat-title">
                         {channelInfo.name}
                       </h1>
@@ -432,23 +460,65 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
                 )}
               </div>
             </div>
-            
-            <div className="flex items-center gap-2">
-              {/* Quick actions */}
-              <Button variant="ghost" size="sm" className="px-2">
-                <Phone className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="px-2">
-                <Video className="h-4 w-4" />
-              </Button>
-              
-              {/* Message filters */}
-              <div className="flex items-center gap-1 ml-4">
+
+            <div
+              className={cn(
+                "flex flex-1 items-center justify-end gap-3",
+                isMobile && "w-full flex-col items-stretch gap-3"
+              )}
+            >
+              <div
+                className={cn(
+                  "flex items-center gap-2",
+                  isMobile && "justify-end gap-3"
+                )}
+              >
+                <Button
+                  variant="ghost"
+                  size={isMobile ? "icon" : "sm"}
+                  className={cn(
+                    "px-2",
+                    isMobile && "h-10 w-10 rounded-full border border-card-border/70 bg-card/60"
+                  )}
+                >
+                  <Phone className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size={isMobile ? "icon" : "sm"}
+                  className={cn(
+                    "px-2",
+                    isMobile && "h-10 w-10 rounded-full border border-card-border/70 bg-card/60"
+                  )}
+                >
+                  <Video className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size={isMobile ? "icon" : "sm"}
+                  className={cn(
+                    "px-2",
+                    isMobile && "h-10 w-10 rounded-full border border-card-border/70 bg-card/60"
+                  )}
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div
+                className={cn(
+                  "flex items-center gap-1 ml-4",
+                  isMobile && "ml-0 overflow-x-auto rounded-full border border-card-border/70 bg-card/60 px-2 py-1 [-ms-overflow-style:none] [scrollbar-width:none]"
+                )}
+              >
                 <Button
                   variant={showUnreadOnly ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setShowUnreadOnly(!showUnreadOnly)}
-                  className="text-xs"
+                  className={cn(
+                    "text-xs",
+                    isMobile && "min-w-[6.5rem] justify-center"
+                  )}
                 >
                   Unread only
                   {messages.filter(m => m.isUnread).length > 0 && (
@@ -461,7 +531,10 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
                   variant={showThreadsOnly ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setShowThreadsOnly(!showThreadsOnly)}
-                  className="text-xs"
+                  className={cn(
+                    "text-xs",
+                    isMobile && "min-w-[6.5rem] justify-center"
+                  )}
                 >
                   Threads only
                   {messages.filter(m => m.threadCount).length > 0 && (
@@ -471,17 +544,13 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
                   )}
                 </Button>
               </div>
-              
-              <Button variant="ghost" size="sm" className="px-2">
-                <Settings className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </div>
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto bg-card" data-testid="messages-container">
-          <div className="py-2">
+          <div className="py-2 px-3 sm:px-4">
             {isLoadingMessages ? (
               <div className="flex items-center justify-center h-32">
                 <div className="text-center">
@@ -555,23 +624,26 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
         />
       </div>
 
-      {/* Thread UI - conditionally rendered side by side */}
+      {/* Thread UI */}
       {selectedThread && (
-        <div className="w-96">
-          <ChatThread
-            parentMessage={{
-              id: selectedThread,
-              userId: messages.find(m => m.id === selectedThread)?.userId || "",
-              userName: messages.find(m => m.id === selectedThread)?.userName || "",
-              content: messages.find(m => m.id === selectedThread)?.content || "",
-              timestamp: messages.find(m => m.id === selectedThread)?.timestamp || new Date(),
-            }}
-            threadMessages={threadMessages}
-            onClose={handleCloseThread}
-            onSendReply={handleSendThreadReply}
-            isLoading={isLoadingThread}
-          />
-        </div>
+        <ChatThread
+          parentMessage={{
+            id: selectedThread,
+            userId: activeThreadParent?.userId ?? "",
+            userName: activeThreadParent?.userName ?? "",
+            content: activeThreadParent?.content ?? "",
+            timestamp: activeThreadParent?.timestamp ?? new Date(),
+          }}
+          threadMessages={threadMessages}
+          onClose={handleCloseThread}
+          onSendReply={handleSendThreadReply}
+          isLoading={isLoadingThread}
+          className={cn(
+            isMobile
+              ? "mt-4 w-full max-h-[60vh] border-t border-card-border rounded-t-lg shadow-none"
+              : "w-96 border-l border-card-border shadow-lg"
+          )}
+        />
       )}
     </div>
   );

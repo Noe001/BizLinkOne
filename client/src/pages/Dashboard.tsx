@@ -181,16 +181,16 @@ export default function Dashboard() {
   return (
     <div className="page-container" data-testid="page-dashboard">
       <div className="page-header">
-        <p className="text-muted-foreground max-w-3xl">{t("dashboard.header.description")}</p>
+        <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">{t("dashboard.header.description")}</p>
         <div className="page-actions">
-          <Button size="sm" data-testid="button-new-item">
+          <Button size="sm" className="h-9 sm:h-8 touch-manipulation" data-testid="button-new-item">
             <Plus className="h-4 w-4 mr-2" />
             {t("dashboard.actions.new")}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5 md:gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5 md:gap-6">
         {statsLoading ? (
           <>
             <StatCardSkeleton />
