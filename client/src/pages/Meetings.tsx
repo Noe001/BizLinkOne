@@ -33,7 +33,7 @@ type IntegrationKey = keyof typeof DEFAULT_INTEGRATIONS;
 
 export default function Meetings() {
   const { t, language } = useTranslation();
-  const { user } = useAuth();
+  const { user, currentWorkspaceId } = useAuth();
   const currentUserId = user?.id ?? "user-1";
   const currentUserName = user?.name ?? "You";
   const [meetingSeeds] = useState<MeetingSeed[]>(initialMeetingSeeds);
@@ -93,10 +93,20 @@ export default function Meetings() {
   }, [dateLocale, language]);
 
   const shareMeetingSummaryToChat = useCallback(async (meeting: MeetingDetails) => {
+    if (!currentWorkspaceId) {
+      toast({
+        title: "Unable to post summary",
+        description: "Select a workspace and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const summary = buildMeetingSummary(meeting);
     const targetChannelId = meeting.relatedChatId ?? "general";
     try {
       await apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
         content: summary,
         userId: "biz-assistant",
         userName: "Biz Assistant",
@@ -115,7 +125,7 @@ export default function Meetings() {
         variant: "destructive",
       });
     }
-  }, [buildMeetingSummary, toast]);
+  }, [buildMeetingSummary, currentWorkspaceId, toast]);
 
 
   const localizedMeetings = useMemo(() => {
@@ -418,16 +428,26 @@ export default function Meetings() {
     t,
   ]);
 
-  const handleShareToChat = async (content: string) => {
-    try {
-      const targetChannelId = selectedMeeting?.relatedChatId ?? "general";
-      await apiRequest("POST", "/api/messages", {
-        content,
-        userId: currentUserId,
-        userName: currentUserName,
-        channelId: targetChannelId,
-        channelType: "channel",
-      });
+    const handleShareToChat = async (content: string) => {
+      if (!currentWorkspaceId) {
+        toast({
+          title: "Unable to share summary",
+          description: "Select a workspace and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const targetChannelId = selectedMeeting?.relatedChatId ?? "general";
+        await apiRequest("POST", "/api/messages", {
+          workspaceId: currentWorkspaceId,
+          content,
+          userId: currentUserId,
+          userName: currentUserName,
+          channelId: targetChannelId,
+          channelType: "channel",
+        });
       toast({
         title: t("meetings.notifications.summaryPosted.title"),
         description: selectedMeeting?.title ?? content.slice(0, 40),

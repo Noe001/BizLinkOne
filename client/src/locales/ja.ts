@@ -2737,6 +2737,24 @@ export const ja = {
         flag: "報告",
         delete: "削除",
       },
+      attachmentPlaceholder: "添付ファイル",
+      attachmentUploadFailed: "添付ファイルのアップロードに失敗しました",
+      tryAgain: "もう一度お試しください。",
+      sendError: "メッセージを送信できませんでした",
+      selectWorkspace: "ワークスペースを選択してからもう一度お試しください。",
+      reactionFailed: "リアクションの更新に失敗しました",
+      unreadSeparator: "新着メッセージ",
+      you: "あなた",
+      attachments: {
+        imageAlt: "{{fileName}} のプレビュー",
+      },
+    },
+    filters: {
+      unreadOnly: "未読のみ",
+      threadsOnly: "スレッドのみ",
+    },
+    reactions: {
+      addPrompt: "クリックしてリアクションを追加",
     },
   },
   workspace: {

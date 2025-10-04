@@ -28,7 +28,7 @@ interface ChatThreadProps {
   };
   threadMessages: ThreadMessage[];
   onClose: () => void;
-  onSendReply: (content: string) => void;
+  onSendReply: (content: string, file?: File | null) => Promise<void> | void;
   isLoading?: boolean;
   className?: string;
 }

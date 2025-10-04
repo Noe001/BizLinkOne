@@ -8,9 +8,12 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { CheckSquare, BookOpen, MoreHorizontal, Reply, Edit, Trash2, Copy, Pin, Flag, Share2 } from "lucide-react";
+import { CheckSquare, BookOpen, MoreHorizontal, Reply, Edit, Trash2, Copy, Pin, Flag, Share2, FileIcon, Image as ImageIcon, Download } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { MessageReactions } from "@/components/MessageReactions";
+import type { ChatAttachmentDto, ChatReactionSummaryDto } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
   id: string;
@@ -40,6 +43,11 @@ interface ChatMessageProps {
   onPin?: (messageId: string) => void;
   onFlag?: (messageId: string) => void;
   onShare?: (messageId: string) => void;
+  attachments?: ChatAttachmentDto[];
+  reactions?: (ChatReactionSummaryDto & { hasReacted: boolean })[];
+  onAddReaction?: (messageId: string, emoji: string) => void;
+  onRemoveReaction?: (messageId: string, emoji: string) => void;
+  disableReactions?: boolean;
 }
 
 export function ChatMessage(props: ChatMessageProps) {
@@ -68,6 +76,11 @@ export function ChatMessage(props: ChatMessageProps) {
     onPin,
     onFlag,
     onShare,
+    attachments = [],
+    reactions = [],
+    onAddReaction,
+    onRemoveReaction,
+    disableReactions = false,
   } = props;
 
   const handleConvertToTask = () => {
@@ -86,6 +99,13 @@ export function ChatMessage(props: ChatMessageProps) {
     onViewThread?.(id);
   };
 
+  const formatFileSize = (bytes: number): string => {
+    if (!bytes || Number.isNaN(bytes)) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <>
       {isFirstUnread && (
@@ -95,7 +115,7 @@ export function ChatMessage(props: ChatMessageProps) {
           </div>
           <div className="relative flex justify-center">
             <span className="bg-card px-4 text-sm font-medium text-red-500 uppercase tracking-wide">
-              New Messages
+              {t("chat.message.unreadSeparator")}
             </span>
           </div>
         </div>
@@ -127,11 +147,11 @@ export function ChatMessage(props: ChatMessageProps) {
                   <span className="animate-pulse">送信中</span>
                   <span className="animate-spin inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full"></span>
                 </span>
-              ) : (
-                formatDistanceToNow(timestamp, { addSuffix: true })
-              )}
-            </span>
-            {isOwn && <Badge variant="outline" className="text-xs">You</Badge>}
+            ) : (
+              formatDistanceToNow(timestamp, { addSuffix: true })
+            )}
+          </span>
+            {isOwn && <Badge variant="outline" className="text-xs">{t("chat.message.you")}</Badge>}
 
             {/* controls: align to far right for non-own, keep on right for own */}
             <div className={`${isOwn ? '' : 'ml-auto'} flex items-center opacity-40 group-hover:opacity-100 transition-all duration-150 gap-1`}>
@@ -240,7 +260,72 @@ export function ChatMessage(props: ChatMessageProps) {
           </div>
 
           <div className={`${isOwn ? 'text-right' : ''}`}>
-            <p className="text-sm leading-relaxed text-foreground m-0">{content}</p>
+            <p className="text-sm leading-relaxed text-foreground m-0 whitespace-pre-wrap break-words">{content}</p>
+
+            {attachments.length > 0 && (
+              <div className={cn(
+                "mt-3 flex flex-col gap-2",
+                isOwn ? "items-end" : "items-start"
+              )}>
+                {attachments.map((attachment) => {
+                  const isImage = attachment.mimeType?.startsWith('image/');
+                  if (isImage) {
+                    return (
+                      <a
+                        key={attachment.id}
+                        href={attachment.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative block overflow-hidden rounded-lg border border-border"
+                      >
+                        <img
+                          src={attachment.fileUrl}
+                          alt={t("chat.message.attachments.imageAlt", { fileName: attachment.fileName })}
+                          className="max-h-48 w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-3 py-1 text-left text-xs text-white">
+                          <div className="font-medium truncate">{attachment.fileName}</div>
+                          <div>{formatFileSize(attachment.fileSize ?? 0)}</div>
+                        </div>
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <a
+                      key={attachment.id}
+                      href={attachment.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="flex max-w-xs items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <FileIcon className="h-5 w-5 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{attachment.fileName}</div>
+                        <div className="text-xs text-muted-foreground">{formatFileSize(attachment.fileSize ?? 0)}</div>
+                      </div>
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+
+            {(reactions.length > 0 || onAddReaction) && (
+              <div className={cn(
+                "mt-2 flex",
+                isOwn ? "justify-end" : "justify-start"
+              )}>
+                <MessageReactions
+                  messageId={id}
+                  reactions={reactions}
+                  onAddReaction={onAddReaction}
+                  onRemoveReaction={onRemoveReaction}
+                  disabled={disableReactions || isPending}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

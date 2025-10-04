@@ -20,10 +20,11 @@ import {
   EmptyState,
 } from "@/components/ui/skeleton-components";
 import { useQuery } from "@tanstack/react-query";
-import type { ChatMessage as ChatMessageType, Task, KnowledgeArticle, Meeting } from "@shared/schema";
+import type { Task, KnowledgeArticle, Meeting } from "@shared/schema";
+import type { ChatMessagesResponse, ChatMessageWithExtrasDto } from "@/types";
 import { useTranslation } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { MessageModalContext } from "@/types";
 import { dashboardSummary, sampleProjects } from "@/data/projects";
 
@@ -37,33 +38,112 @@ interface DashboardStats {
 export default function Dashboard() {
   const { t } = useTranslation();
   const { addNotification } = useNotifications();
-  const { user } = useAuth();
+  const { user, currentWorkspaceId } = useAuth();
   const currentUserId = user?.id ?? null;
   const [taskModalContext, setTaskModalContext] = useState<MessageModalContext | null>(null);
   const [knowledgeModalContext, setKnowledgeModalContext] = useState<MessageModalContext | null>(null);
 
+  const statsQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/stats", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
+  const aggregatedMessagesQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/messages", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
+  const tasksQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/tasks", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
+  const knowledgeQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/knowledge", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
+  const meetingsQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/meetings", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/stats"],
+    queryKey: statsQueryKey ?? ["/api/stats", ""],
+    enabled: Boolean(statsQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const params = new URLSearchParams({ workspaceId });
+      const response = await fetch(`/api/stats?${params.toString()}`, { credentials: "include" });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || response.statusText);
+      }
+      return (await response.json()) as DashboardStats;
+    },
   });
 
-  const { data: messages, isLoading: messagesLoading } = useQuery<ChatMessageType[]>({
-    queryKey: ["/api/messages"],
+  const { data: messagesTimeline, isLoading: messagesLoading } = useQuery<ChatMessagesResponse>({
+    queryKey: aggregatedMessagesQueryKey ?? ["/api/messages", ""],
+    enabled: Boolean(aggregatedMessagesQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const params = new URLSearchParams({ workspaceId });
+      if (currentUserId) {
+        params.set("userId", currentUserId);
+      }
+      const response = await fetch(`/api/messages?${params.toString()}`, { credentials: "include" });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || response.statusText);
+      }
+      return (await response.json()) as ChatMessagesResponse;
+    },
   });
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
-    queryKey: ["/api/tasks"],
+  const messages: ChatMessageWithExtrasDto[] = messagesTimeline?.messages ?? [];
+
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
+    queryKey: tasksQueryKey ?? ["/api/tasks", ""],
+    enabled: Boolean(tasksQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const response = await fetch(`/api/tasks?workspaceId=${workspaceId}`, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return (await response.json()) as Task[];
+    },
   });
 
-  const { data: knowledge, isLoading: knowledgeLoading } = useQuery<KnowledgeArticle[]>({
-    queryKey: ["/api/knowledge"],
+  const { data: knowledge = [], isLoading: knowledgeLoading } = useQuery<KnowledgeArticle[]>({
+    queryKey: knowledgeQueryKey ?? ["/api/knowledge", ""],
+    enabled: Boolean(knowledgeQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const response = await fetch(`/api/knowledge?workspaceId=${workspaceId}`, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return (await response.json()) as KnowledgeArticle[];
+    },
   });
 
-  const { data: meetings, isLoading: meetingsLoading } = useQuery<Meeting[]>({
-    queryKey: ["/api/meetings"],
+  const { data: meetings = [], isLoading: meetingsLoading } = useQuery<Meeting[]>({
+    queryKey: meetingsQueryKey ?? ["/api/meetings", ""],
+    enabled: Boolean(meetingsQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const response = await fetch(`/api/meetings?workspaceId=${workspaceId}`, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return (await response.json()) as Meeting[];
+    },
   });
 
   const handleRequestTaskCreation = (messageId: string) => {
-    const message = (messages ?? []).find(item => item.id === messageId);
+    const message = messages.find(item => item.id === messageId);
     if (!message) {
       console.warn(`Unable to find message ${messageId} for task conversion.`);
       return;
@@ -92,7 +172,7 @@ export default function Dashboard() {
   };
 
   const handleRequestKnowledgeCreation = (messageId: string) => {
-    const message = (messages ?? []).find(item => item.id === messageId);
+    const message = messages.find(item => item.id === messageId);
     if (!message) {
       console.warn(`Unable to find message ${messageId} for knowledge conversion.`);
       return;
@@ -124,7 +204,20 @@ export default function Dashboard() {
     console.log(t("dashboard.log.reply"), messageId);
   };
 
-  const recentMessages = messages?.slice(0, 2) || [];
+  const recentMessages = useMemo(() => {
+    return messages.slice(0, 2).map((message) => {
+      const normalizedReactions = (message.reactions ?? []).map((reaction) => ({
+        ...reaction,
+        hasReacted: currentUserId ? reaction.userIds.includes(currentUserId) : false,
+      }));
+
+      return {
+        ...message,
+        timestamp: new Date(message.createdAt),
+        reactions: normalizedReactions,
+      };
+    });
+  }, [messages, currentUserId]);
   const upcomingTasks =
     tasks?.slice(0, 2).map((task) => {
       const allowedStatuses: TaskStatus[] = ["todo", "in-progress", "review", "done"];
@@ -296,6 +389,7 @@ export default function Dashboard() {
                     onRequestTaskCreation={handleRequestTaskCreation}
                     onRequestKnowledgeCreation={handleRequestKnowledgeCreation}
                     onReply={handleReply}
+                    disableReactions
                   />
                 ))
               ) : (

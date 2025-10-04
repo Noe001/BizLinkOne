@@ -141,12 +141,13 @@ export const chatReactions = pgTable("chat_reactions", {
 // Chat Read Receipts
 export const chatReadReceipts = pgTable("chat_read_receipts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: varchar("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   channelId: varchar("channel_id").notNull().references(() => chatChannels.id, { onDelete: "cascade" }),
   lastReadMessageId: varchar("last_read_message_id"),
   lastReadAt: timestamp("last_read_at").defaultNow().notNull(),
 }, (table) => ({
-  uniqueReceipt: unique().on(table.userId, table.channelId),
+  uniqueReceipt: unique().on(table.workspaceId, table.userId, table.channelId),
 }));
 
 // Tasks
@@ -271,3 +272,21 @@ export type KnowledgeArticle = typeof knowledgeArticles.$inferSelect;
 
 export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
 export type Meeting = typeof meetings.$inferSelect;
+
+// Derived chat types used by both client and server
+export interface ChatReactionSummary {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
+export interface ChatMessageWithExtras extends ChatMessage {
+  attachments: ChatAttachment[];
+  reactions: ChatReactionSummary[];
+}
+
+export interface ChatMessagesResponse {
+  messages: ChatMessageWithExtras[];
+  unreadCount: number;
+  readReceipt: ChatReadReceipt | null;
+}

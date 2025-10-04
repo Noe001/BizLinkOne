@@ -55,7 +55,7 @@ export default function Knowledge() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const { knowledgeArticles, getParticipantById, updateKnowledge, deleteKnowledge, createKnowledge } = useWorkspaceData();
-  const { user } = useAuth();
+  const { user, currentWorkspaceId } = useAuth();
 
   const currentUserId = user?.id ?? "user-1";
   const currentUserName = user?.name ?? "You";
@@ -280,8 +280,14 @@ ${summary}
 
 [View full article](${KNOWLEDGE_ROUTE_BASE}/${article.id})`;
 
+    if (!currentWorkspaceId) {
+      toast({ title: "Unable to share", description: "Select a workspace and try again.", variant: "destructive" });
+      return;
+    }
+
     try {
       await apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
         content: message,
         userId: currentUserId,
         userName: currentUserName,
@@ -319,8 +325,14 @@ ${summary}
 
 [View full article](${KNOWLEDGE_ROUTE_BASE}/${article.id})`;
 
+    if (!currentWorkspaceId) {
+      toast({ title: "Unable to share", description: "Select a workspace and try again.", variant: "destructive" });
+      return;
+    }
+
     try {
       await apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
         content: message,
         userId: currentUserId,
         userName: currentUserName,
