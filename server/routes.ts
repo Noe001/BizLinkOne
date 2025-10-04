@@ -84,12 +84,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let readReceipt: ChatMessagesResponse["readReceipt"] = null;
       let unreadCount = 0;
 
-      if (
-        typeof userId === "string" &&
-        typeof channelId === "string" &&
-        channelFilter
-      ) {
-        const receipt = await storage.getReadReceipt(workspaceId, userId, channelFilter);
+      if (typeof userId === "string" && typeof channelId === "string") {
+        const receipt = await storage.getReadReceipt(workspaceId, userId, channelId);
         if (receipt) {
           readReceipt = receipt;
         }

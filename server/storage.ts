@@ -212,10 +212,6 @@ export class MemStorage implements IStorage {
       lastReadAt: now,
     };
 
-    if (receipt.lastReadMessageId) {
-      record.lastReadMessageId = receipt.lastReadMessageId;
-    }
-
     this.chatReadReceipts.set(key, record);
     return record;
   }
