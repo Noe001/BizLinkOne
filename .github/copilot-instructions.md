@@ -1,5 +1,50 @@
 # BizLinkOne - Copilot Instructions (concise)
 
+These notes give an AI coding agent the essential, discoverable knowledge to be productive in this repo. Keep edits small and follow existing patterns.
+
+- Architecture overview
+  - Monorepo with three layers:
+    - client/: Vite + React + TypeScript + Tailwind + shadcn/ui (UI, pages, components, locales).
+    - server/: Node entry at `server/index.ts` (serves API routes and the Vite client in dev).
+    - shared/: `shared/schema.ts` contains Drizzle schema and Zod types used by both sides.
+
+- Key commands (repo root)
+  - npm run dev — start dev server (server + Vite client).
+  - npm run build — build frontend and bundle server.
+  - npm run db:push — push Drizzle schema changes (requires DATABASE_URL).
+
+- Project-specific conventions
+  - Path aliases: `@/` → `client/src`, `@shared/` → `shared/` (see `vite.config.ts` / `tsconfig.json`).
+  - i18n: all user-facing strings use `t()` and live in `client/src/locales/` (esp. `ja.ts`). Do not hardcode English.
+  - Schema-first: canonical data shapes live in `shared/schema.ts`. Use Zod schemas for server validation and to derive types for the client.
+
+- Data & integration patterns
+  - TanStack Query: `client/src/lib/queryClient.ts` defines `getQueryFn` that maps query keys to REST paths — queryKey segments become path segments (example: ["/api","tasks"] → GET /api/tasks).
+  - WorkspaceDataContext: cross-feature mutations and helpers live in `client/src/contexts/WorkspaceDataContext.tsx`. Extend this context when an operation affects multiple UI areas.
+  - Storage abstraction: server storage follows an `IStorage` interface in `server/storage.ts`. `MemStorage` is the in-memory dev implementation — copy its method signatures when adding routes.
+
+- Validation & error handling
+  - Server routes import Zod schemas from `@shared/schema` and validate with `safeParse`. Convert validation errors using `fromZodError` before returning to clients (see `server/routes.ts`).
+
+- Common flows / examples (copy these)
+  - Query mapping: `client/src/lib/queryClient.ts` — queryKey ["/api","tasks"] → GET /api/tasks.
+  - Chat → create task/knowledge: `client/src/pages/Chat.tsx` passes origin metadata `{ source: 'chat', referenceId, referenceLabel }` and `messageContext` when creating records. See `CreateTaskModal.tsx` / `CreateKnowledgeModal.tsx` for modal wiring.
+
+- Quick developer checks
+  - Windows: server listen includes platform-specific handling; use `npm run dev` for local development.
+  - If you change `shared/schema.ts`, update types first. If a real DB is used, run `npm run db:push`.
+  - QueryClient defaults: retries disabled and staleTime = Infinity — explicitly invalidate queries after mutations (example: `queryClient.invalidateQueries({ queryKey: ["chatMessages"] })`).
+
+- Files to inspect when changing behavior
+  - Query wiring: `client/src/lib/queryClient.ts`
+  - Cross-feature operations: `client/src/contexts/WorkspaceDataContext.tsx`
+  - Routes & validation: `server/routes.ts`, `shared/schema.ts`
+  - Storage & seeds: `server/storage.ts`
+  - i18n usage: `client/src/locales/ja.ts`
+
+If you'd like, I can append short code snippets showing the minimal patterns (a sample route using a Zod schema, a queryClient example, and a WorkspaceDataContext mutation). Tell me which snippet to add.
+# BizLinkOne - Copilot Instructions (concise)
+
 These instructions summarize the essential, discoverable patterns for an AI coding agent to be immediately productive in this repo.
 
 - Architecture: full-stack monorepo. Frontend lives in `client/` (Vite + React + TypeScript + Tailwind + shadcn/ui). Backend is `server/` (Express). Shared DB/schema types are in `shared/schema.ts` (Drizzle + Zod).

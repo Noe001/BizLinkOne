@@ -139,7 +139,7 @@ export function MeetingCard({
 
   return (
     <Card
-      className="hover-elevate cursor-pointer group transition-all duration-200 hover:shadow-lg"
+      className="hover-elevate cursor-pointer group transition-all duration-200 hover:shadow-lg active:scale-[0.98] touch-manipulation"
       onClick={handleCardClick}
       data-testid={`meeting-card-${id}`}
       aria-label={`${title} - ${statusConfig[status].label}`}

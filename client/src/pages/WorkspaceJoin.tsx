@@ -29,10 +29,10 @@ export default function WorkspaceJoinPage({ onWorkspaceJoin }: WorkspaceJoinPage
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-svh bg-background flex items-center justify-center px-4 py-6">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Button
               variant="ghost"
               size="icon"

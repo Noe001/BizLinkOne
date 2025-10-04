@@ -33,7 +33,7 @@ type IntegrationKey = keyof typeof DEFAULT_INTEGRATIONS;
 
 export default function Meetings() {
   const { t, language } = useTranslation();
-  const { user } = useAuth();
+  const { user, currentWorkspaceId } = useAuth();
   const currentUserId = user?.id ?? "user-1";
   const currentUserName = user?.name ?? "You";
   const [meetingSeeds] = useState<MeetingSeed[]>(initialMeetingSeeds);
@@ -93,10 +93,20 @@ export default function Meetings() {
   }, [dateLocale, language]);
 
   const shareMeetingSummaryToChat = useCallback(async (meeting: MeetingDetails) => {
+    if (!currentWorkspaceId) {
+      toast({
+        title: "Unable to post summary",
+        description: "Select a workspace and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const summary = buildMeetingSummary(meeting);
     const targetChannelId = meeting.relatedChatId ?? "general";
     try {
       await apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
         content: summary,
         userId: "biz-assistant",
         userName: "Biz Assistant",
@@ -115,7 +125,7 @@ export default function Meetings() {
         variant: "destructive",
       });
     }
-  }, [buildMeetingSummary, toast]);
+  }, [buildMeetingSummary, currentWorkspaceId, toast]);
 
 
   const localizedMeetings = useMemo(() => {
@@ -418,16 +428,26 @@ export default function Meetings() {
     t,
   ]);
 
-  const handleShareToChat = async (content: string) => {
-    try {
-      const targetChannelId = selectedMeeting?.relatedChatId ?? "general";
-      await apiRequest("POST", "/api/messages", {
-        content,
-        userId: currentUserId,
-        userName: currentUserName,
-        channelId: targetChannelId,
-        channelType: "channel",
-      });
+    const handleShareToChat = async (content: string) => {
+      if (!currentWorkspaceId) {
+        toast({
+          title: "Unable to share summary",
+          description: "Select a workspace and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const targetChannelId = selectedMeeting?.relatedChatId ?? "general";
+        await apiRequest("POST", "/api/messages", {
+          workspaceId: currentWorkspaceId,
+          content,
+          userId: currentUserId,
+          userName: currentUserName,
+          channelId: targetChannelId,
+          channelType: "channel",
+        });
       toast({
         title: t("meetings.notifications.summaryPosted.title"),
         description: selectedMeeting?.title ?? content.slice(0, 40),
@@ -448,27 +468,27 @@ export default function Meetings() {
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="page-meetings">
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground">
+    <div className="page-container" data-testid="page-meetings">
+      <div className="page-header">
+        <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">
           {t("meetings.header.description")}
         </p>
-        <Button onClick={() => setShowCreateModal(true)} data-testid="button-new-meeting">
+        <Button onClick={() => setShowCreateModal(true)} data-testid="button-new-meeting" className="h-9 sm:h-10 touch-manipulation">
           <Plus className="h-4 w-4 mr-2" />
           {t("meetings.actions.schedule")}
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
         </div>
-            ) : (
+      ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             <Card data-testid="stat-total-meetings" className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-sm font-medium">{t("meetings.stats.total.label")}</CardTitle>
@@ -682,7 +702,7 @@ export default function Meetings() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="meetings-grid">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 md:gap-6" data-testid="meetings-grid">
           {[...Array(6)].map((_, index) => (
             <MeetingSkeleton key={index} />
           ))}
@@ -704,7 +724,7 @@ export default function Meetings() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="meetings-grid">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 md:gap-6" data-testid="meetings-grid">
           {filteredMeetings.map((meeting) => (
             <MeetingCard
               key={meeting.id}

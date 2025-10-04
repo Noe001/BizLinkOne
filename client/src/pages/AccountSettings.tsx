@@ -196,10 +196,10 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className="p-6 space-y-6" data-testid="page-account-settings">
+    <div className="page-container" data-testid="page-account-settings">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="page-header">
+        <div className="flex flex-wrap items-center gap-3">
           <Link href="/">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />

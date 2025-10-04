@@ -55,7 +55,7 @@ export default function Knowledge() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const { knowledgeArticles, getParticipantById, updateKnowledge, deleteKnowledge, createKnowledge } = useWorkspaceData();
-  const { user } = useAuth();
+  const { user, currentWorkspaceId } = useAuth();
 
   const currentUserId = user?.id ?? "user-1";
   const currentUserName = user?.name ?? "You";
@@ -280,8 +280,14 @@ ${summary}
 
 [View full article](${KNOWLEDGE_ROUTE_BASE}/${article.id})`;
 
+    if (!currentWorkspaceId) {
+      toast({ title: "Unable to share", description: "Select a workspace and try again.", variant: "destructive" });
+      return;
+    }
+
     try {
       await apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
         content: message,
         userId: currentUserId,
         userName: currentUserName,
@@ -319,8 +325,14 @@ ${summary}
 
 [View full article](${KNOWLEDGE_ROUTE_BASE}/${article.id})`;
 
+    if (!currentWorkspaceId) {
+      toast({ title: "Unable to share", description: "Select a workspace and try again.", variant: "destructive" });
+      return;
+    }
+
     try {
       await apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
         content: message,
         userId: currentUserId,
         userName: currentUserName,
@@ -347,17 +359,17 @@ ${summary}
   const selectedAuthorLabel = authorFilter === "all" ? undefined : authorOptions.find((author) => author.id === authorFilter)?.name;
 
   return (
-    <div className="flex h-full">
-      <div className="flex-1 p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">{t("knowledge.header.description")}</p>
-          <Button onClick={() => setCreateModalOpen(true)}>
+    <div className="flex h-full flex-col lg:flex-row">
+      <div className="flex-1 page-container">
+        <div className="page-header">
+          <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">{t("knowledge.header.description")}</p>
+          <Button onClick={() => setCreateModalOpen(true)} className="h-9 sm:h-10 touch-manipulation">
             <Plus className="h-4 w-4 mr-2" />
             {t("knowledge.actions.new")}
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
           <Card className="transition-all duration-200 hover:shadow-md hover:scale-[1.02]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="text-sm font-medium">{t("knowledge.stats.totalArticles.title")}</CardTitle>
@@ -408,19 +420,19 @@ ${summary}
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t("knowledge.filters.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  className="pl-10 w-72"
+                  className="pl-10 w-full sm:w-72"
                 />
               </div>
 
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40" data-testid="filter-sort">
+                <SelectTrigger className="w-full sm:w-40" data-testid="filter-sort">
                   <SelectValue placeholder={t("knowledge.filters.sort.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -439,8 +451,8 @@ ${summary}
           </div>
 
           {showAdvancedFilters && (
-            <Card className="p-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
                 <div>
                   <label className="text-sm font-medium mb-2 block">{t("knowledge.filters.tag.label")}</label>
                   <Select value={selectedTag} onValueChange={setSelectedTag}>
@@ -533,7 +545,7 @@ ${summary}
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="knowledge-grid">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6" data-testid="knowledge-grid">
             {[...Array(6)].map((_, index) => (
               <KnowledgeSkeleton key={`skeleton-${index}`} />
             ))}
@@ -555,7 +567,7 @@ ${summary}
             }
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="knowledge-grid">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6" data-testid="knowledge-grid">
             {filteredArticles.map((article) => (
               <KnowledgeCard
                 key={article.id}
@@ -576,7 +588,7 @@ ${summary}
         )}
       </div>
 
-      <div className="w-80 border-l border-border p-6 space-y-8">
+      <div className="w-full border-t border-border px-4 py-6 space-y-8 sm:px-6 lg:w-80 lg:border-l lg:border-t-0">
         <div>
           <h3 className="text-lg font-semibold mb-4">{t("knowledge.sidebar.popular.title")}</h3>
           <div className="space-y-3">

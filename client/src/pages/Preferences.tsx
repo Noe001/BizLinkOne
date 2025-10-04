@@ -379,8 +379,8 @@ export default function Preferences() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6 p-6" data-testid="page-preferences">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="page-container" data-testid="page-preferences">
+        <div className="page-header items-start">
           <div className="space-y-1">
             <p className="text-muted-foreground">{t("preferences.header.description")}</p>
             {formattedLastSaved && (
@@ -389,7 +389,7 @@ export default function Preferences() {
               </p>
             )}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="page-actions sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"

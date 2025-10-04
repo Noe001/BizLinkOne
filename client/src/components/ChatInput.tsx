@@ -3,24 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Paperclip, Smile, Slash, AtSign, Bold, Italic, Code, Quote, BookOpen, Search } from "lucide-react";
 import { KnowledgeSearchModal, KnowledgeSearchArticle } from "./KnowledgeSearchModal";
+import { FileUploadButton } from "./FileUploadButton";
 import { KNOWLEDGE_ROUTE_BASE, KNOWLEDGE_COMMANDS, SLASH_COMMANDS, type KnowledgeCommand } from "@/constants/commands";
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, file?: File | null) => Promise<void> | void;
   placeholder?: string;
   disabled?: boolean;
   showShortcut?: boolean;
   onShareKnowledge?: (knowledgeId: string, title: string, summary: string) => void;
 }
 
-export function ChatInput({ 
-  onSendMessage, 
+export function ChatInput({
+  onSendMessage,
   placeholder = "Type a message...", 
   disabled = false, 
   showShortcut = true,
   onShareKnowledge
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
   const [showCommands, setShowCommands] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -37,9 +39,9 @@ export function ChatInput({
     }
   };
 
-  const handleKnowledgeSelect = (knowledge: KnowledgeSearchArticle) => {
+  const handleKnowledgeSelect = async (knowledge: KnowledgeSearchArticle) => {
     const knowledgeMessage = `📚 **${knowledge.title}**\n\n${knowledge.summary}\n\n[View full article](${KNOWLEDGE_ROUTE_BASE}/${knowledge.id})`;
-    onSendMessage(knowledgeMessage);
+    await onSendMessage(knowledgeMessage, null);
     onShareKnowledge?.(knowledge.id, knowledge.title, knowledge.summary);
   };
 
@@ -49,9 +51,9 @@ export function ChatInput({
     textareaRef.current?.focus();
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmedMessage = message.trim();
-    if (trimmedMessage && !disabled) {
+    if ((trimmedMessage || selectedFile) && !disabled) {
       // Handle special commands
       if (KNOWLEDGE_COMMANDS.includes(trimmedMessage as KnowledgeCommand)) {
         setShowKnowledgeModal(true);
@@ -60,15 +62,16 @@ export function ChatInput({
       }
 
       console.log(`Sending message: ${trimmedMessage}`);
-      onSendMessage(trimmedMessage);
+      await onSendMessage(trimmedMessage, selectedFile);
       setMessage("");
+      setSelectedFile(null);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && e.ctrlKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
     
     if (e.key === "Escape" && showCommands) {
@@ -170,9 +173,12 @@ export function ChatInput({
           {/* Bottom action buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-0.5">
-              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Attach file" data-testid="button-attach-bottom">
-                <Paperclip className="h-6 w-6" />
-              </Button>
+              <FileUploadButton
+                onFileSelect={setSelectedFile}
+                onFileRemove={() => setSelectedFile(null)}
+                selectedFile={selectedFile}
+                disabled={disabled}
+              />
               <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Mention user" data-testid="button-mention-bottom">
                 <AtSign className="h-6 w-6" />
               </Button>
@@ -194,8 +200,8 @@ export function ChatInput({
 
               <Button
                 size="icon"
-                onClick={handleSend}
-                disabled={!message.trim() || disabled}
+                onClick={() => void handleSend()}
+                disabled={disabled || (!message.trim() && !selectedFile)}
                 data-testid="button-send-message"
                 className="h-7 w-7 bg-green-600 hover:bg-blue-600 dark:bg-green-700 dark:hover:bg-blue-700 transition-colors duration-200"
               >

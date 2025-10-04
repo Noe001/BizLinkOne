@@ -342,19 +342,19 @@ export default function Tasks() {
   const visibleTasks = filteredTasks.length;
 
   return (
-    <div className="p-6" data-testid="page-tasks">
+    <div className="page-container" data-testid="page-tasks">
       {/* ラチEEを追加ぁEspace-y-6 の対象要素からカンバン部をE離 */}
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <p className="text-muted-foreground">{t("tasks.header.description")}</p>
-        <Button data-testid="button-new-task" onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t("tasks.actions.new")}
-        </Button>
+        <div className="page-header">
+          <p className="text-muted-foreground max-w-3xl text-sm sm:text-base">{t("tasks.header.description")}</p>
+          <Button data-testid="button-new-task" onClick={() => setIsCreateModalOpen(true)} className="h-9 sm:h-10 touch-manipulation">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("tasks.actions.new")}
+          </Button>
         </div>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Filter className="h-4 w-4" />
@@ -365,7 +365,7 @@ export default function Tasks() {
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground h-3 w-3" />
                 <Input
-                  className="pl-7 h-8 w-full sm:w-64 md:w-80"
+                  className="pl-7 h-10 sm:h-8 w-full sm:w-64 md:w-80 touch-manipulation"
                   placeholder={t("tasks.filters.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
@@ -374,7 +374,7 @@ export default function Tasks() {
               </div>
 
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-32 h-8" data-testid="filter-status">
+                <SelectTrigger className="w-full sm:w-32 h-10 sm:h-8 touch-manipulation" data-testid="filter-status">
                   <SelectValue placeholder={t("tasks.filters.status.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -387,7 +387,7 @@ export default function Tasks() {
               </Select>
 
               <Select value={filterPriority} onValueChange={setFilterPriority}>
-                <SelectTrigger className="w-full sm:w-28 h-8" data-testid="filter-priority">
+                <SelectTrigger className="w-full sm:w-28 h-10 sm:h-8 touch-manipulation" data-testid="filter-priority">
                   <SelectValue placeholder={t("tasks.filters.priority.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -399,7 +399,7 @@ export default function Tasks() {
                 </SelectContent>
               </Select>
               <Select value={projectFilter} onValueChange={setProjectFilter}>
-                <SelectTrigger className="w-full sm:w-40 h-8" data-testid="filter-project">
+                <SelectTrigger className="w-full sm:w-40 h-10 sm:h-8 touch-manipulation" data-testid="filter-project">
                   <SelectValue placeholder={t("tasks.filters.project.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -412,7 +412,7 @@ export default function Tasks() {
               </Select>
 
               {(filterStatus !== "all" || filterPriority !== "all" || projectFilter !== "all" || searchQuery) && (
-                <Button variant="outline" size="sm" onClick={clearFilters} className="h-8 px-2">
+                <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 sm:h-8 px-3 sm:px-2 touch-manipulation">
                   {t("tasks.filters.clear")}
                 </Button>
               )}
@@ -422,11 +422,11 @@ export default function Tasks() {
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <p className="text-xs sm:text-xs text-muted-foreground">
             {t("tasks.stats.showing", { count: visibleTasks, total: totalTasks })}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
             {(['kanban', 'list', 'gantt'] as const).map((mode) => (
               <Button
                 key={mode}
@@ -434,7 +434,7 @@ export default function Tasks() {
                 size="sm"
                 onClick={() => setViewMode(mode)}
                 data-testid={'tasks-view-' + mode}
-                className="h-8"
+                className="h-9 sm:h-8 flex-1 sm:flex-none touch-manipulation text-xs sm:text-sm"
               >
                 {t('tasks.viewModes.' + mode)}
               </Button>
@@ -444,7 +444,7 @@ export default function Tasks() {
       </div>
 
       {viewMode === "kanban" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-1" data-testid="kanban-board">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 sm:gap-4 lg:gap-6 mt-1" data-testid="kanban-board">
           {statusColumns.map((column) => {
             const columnTasks = getTasksByStatus(column.status);
             return (
