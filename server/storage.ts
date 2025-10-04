@@ -35,19 +35,19 @@ export interface IStorage {
   upsertReadReceipt(receipt: InsertChatReadReceipt & { lastReadAt?: Date }): Promise<ChatReadReceipt>;
 
   // Tasks
-  getTasks(): Promise<Task[]>;
+  getTasks(workspaceId: string): Promise<Task[]>;
   getTask(id: string): Promise<Task | undefined>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: string, updates: Partial<InsertTask>): Promise<Task | undefined>;
 
   // Knowledge Articles
-  getKnowledgeArticles(): Promise<KnowledgeArticle[]>;
+  getKnowledgeArticles(workspaceId: string): Promise<KnowledgeArticle[]>;
   getKnowledgeArticle(id: string): Promise<KnowledgeArticle | undefined>;
   createKnowledgeArticle(article: InsertKnowledgeArticle): Promise<KnowledgeArticle>;
   incrementArticleViews(id: string): Promise<void>;
 
   // Meetings
-  getMeetings(): Promise<Meeting[]>;
+  getMeetings(workspaceId: string): Promise<Meeting[]>;
   getMeeting(id: string): Promise<Meeting | undefined>;
   createMeeting(meeting: InsertMeeting): Promise<Meeting>;
   updateMeeting(id: string, updates: Partial<InsertMeeting>): Promise<Meeting | undefined>;
@@ -221,10 +221,10 @@ export class MemStorage implements IStorage {
   }
 
   // Tasks
-  async getTasks(): Promise<Task[]> {
-    return Array.from(this.tasks.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  async getTasks(workspaceId: string): Promise<Task[]> {
+    return Array.from(this.tasks.values())
+      .filter((task) => task.workspaceId === workspaceId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getTask(id: string): Promise<Task | undefined> {
@@ -256,10 +256,10 @@ export class MemStorage implements IStorage {
   }
 
   // Knowledge Articles
-  async getKnowledgeArticles(): Promise<KnowledgeArticle[]> {
-    return Array.from(this.knowledgeArticles.values()).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  async getKnowledgeArticles(workspaceId: string): Promise<KnowledgeArticle[]> {
+    return Array.from(this.knowledgeArticles.values())
+      .filter((article) => article.workspaceId === workspaceId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getKnowledgeArticle(id: string): Promise<KnowledgeArticle | undefined> {
@@ -291,10 +291,10 @@ export class MemStorage implements IStorage {
   }
 
   // Meetings
-  async getMeetings(): Promise<Meeting[]> {
-    return Array.from(this.meetings.values()).sort((a, b) => 
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
+  async getMeetings(workspaceId: string): Promise<Meeting[]> {
+    return Array.from(this.meetings.values())
+      .filter((meeting) => meeting.workspaceId === workspaceId)
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }
 
   async getMeeting(id: string): Promise<Meeting | undefined> {

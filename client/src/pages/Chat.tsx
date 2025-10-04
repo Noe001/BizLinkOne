@@ -10,6 +10,7 @@ import { ChatThread } from "@/components/ChatThread";
 import { NewTaskModal, type NewTaskData } from "@/components/NewTaskModal";
 import { CreateKnowledgeModal, type CreateKnowledgeData } from "@/components/CreateKnowledgeModal";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import type { QueryKey } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,8 @@ interface DisplayMessage {
 }
 
 type SendMessageContext = {
+  channelQueryKey?: QueryKey;
+  aggregatedQueryKey?: QueryKey;
   previousChannelTimeline?: ChatMessagesResponse;
   previousAggregatedTimeline?: ChatMessagesResponse;
   optimisticId?: string;
@@ -283,6 +286,69 @@ export default function Chat() {
     isFirstUnread: message.isUnread && index === firstUnreadIndex
   }));
 
+  const { mutate: markRead, isPending: isMarkingRead } = useMutation<void, unknown, { messageId: string; timestamp: Date }>({
+    mutationFn: async ({ messageId, timestamp }) => {
+      const workspaceId = currentWorkspaceId;
+      const activeChannelId = channelId;
+      if (!activeChannelId || !workspaceId) {
+        return;
+      }
+      await apiRequest("POST", "/api/messages/read-receipts", {
+        workspaceId,
+        userId: currentUserId,
+        channelId: activeChannelId,
+        lastReadMessageId: messageId,
+        lastReadAt: timestamp,
+      });
+    },
+    onSuccess: (_data, variables) => {
+      if (!currentWorkspaceId || !channelId) {
+        return;
+      }
+      if (messagesQueryKey) {
+        queryClient.setQueryData<ChatMessagesResponse>(messagesQueryKey, (old) => {
+          if (!old) {
+            return old;
+          }
+          const updatedReceipt: ChatReadReceiptDto = {
+            id: old.readReceipt?.id ?? `temp-${currentUserId}-${channelId}`,
+            workspaceId: currentWorkspaceId,
+            userId: currentUserId,
+            channelId: channelId ?? "",
+            lastReadMessageId: variables.messageId,
+            lastReadAt: variables.timestamp,
+          };
+          return {
+            ...old,
+            readReceipt: updatedReceipt,
+            unreadCount: 0,
+          };
+        });
+      }
+
+      if (aggregatedMessagesQueryKey) {
+        queryClient.setQueryData<ChatMessagesResponse>(aggregatedMessagesQueryKey, (old) => {
+          if (!old) {
+            return old;
+          }
+          const updatedReceipt: ChatReadReceiptDto = {
+            id: old.readReceipt?.id ?? `temp-${currentUserId}-${channelId}`,
+            workspaceId: currentWorkspaceId,
+            userId: currentUserId,
+            channelId: channelId ?? "",
+            lastReadMessageId: variables.messageId,
+            lastReadAt: variables.timestamp,
+          };
+          return {
+            ...old,
+            readReceipt: updatedReceipt,
+            unreadCount: 0,
+          };
+        });
+      }
+    },
+  });
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -302,7 +368,7 @@ export default function Chat() {
       markRead({ messageId: lastMessage.id, timestamp });
     }
   }, [rawMessages, readReceipt, channelId, currentWorkspaceId, markRead, isMarkingRead]);
-  
+
   // Send message mutation
   const sendMessageMutation = useMutation<ChatMessageWithExtrasDto, unknown, SendMessageInput, SendMessageContext>({
     mutationFn: async ({ content, attachments }) => {
@@ -329,13 +395,16 @@ export default function Chat() {
         return {};
       }
 
+      const channelQueryKey = messagesQueryKey;
+      const aggregatedQueryKey = aggregatedMessagesQueryKey;
+
       await Promise.all([
-        queryClient.cancelQueries({ queryKey: messagesQueryKey }),
-        queryClient.cancelQueries({ queryKey: aggregatedMessagesQueryKey }),
+        queryClient.cancelQueries({ queryKey: channelQueryKey }),
+        queryClient.cancelQueries({ queryKey: aggregatedQueryKey }),
       ]);
 
-      const previousChannelTimeline = queryClient.getQueryData<ChatMessagesResponse>(messagesQueryKey);
-      const previousAggregatedTimeline = queryClient.getQueryData<ChatMessagesResponse>(aggregatedMessagesQueryKey);
+      const previousChannelTimeline = queryClient.getQueryData<ChatMessagesResponse>(channelQueryKey);
+      const previousAggregatedTimeline = queryClient.getQueryData<ChatMessagesResponse>(aggregatedQueryKey);
 
       const optimisticId = `temp-${Date.now()}`;
       const createdAt = new Date();
@@ -363,7 +432,7 @@ export default function Chat() {
         reactions: [],
       };
 
-      queryClient.setQueryData<ChatMessagesResponse>(messagesQueryKey, (old) => {
+      queryClient.setQueryData<ChatMessagesResponse>(channelQueryKey, (old) => {
         const base = old ?? { messages: [], unreadCount: timeline?.unreadCount ?? 0, readReceipt: readReceipt ?? null };
         return {
           ...base,
@@ -371,7 +440,7 @@ export default function Chat() {
         };
       });
 
-      queryClient.setQueryData<ChatMessagesResponse>(aggregatedMessagesQueryKey, (old) => {
+      queryClient.setQueryData<ChatMessagesResponse>(aggregatedQueryKey, (old) => {
         const base = old ?? { messages: [], unreadCount: 0, readReceipt: null };
         return {
           ...base,
@@ -380,17 +449,22 @@ export default function Chat() {
       });
 
       return {
+        channelQueryKey,
+        aggregatedQueryKey,
         previousChannelTimeline,
         previousAggregatedTimeline,
         optimisticId,
       };
     },
     onError: (error, _variables, context) => {
-      if (messagesQueryKey && context?.previousChannelTimeline) {
-        queryClient.setQueryData(messagesQueryKey, context.previousChannelTimeline);
+      const channelQueryKey = context?.channelQueryKey;
+      const aggregatedQueryKey = context?.aggregatedQueryKey;
+
+      if (channelQueryKey && context?.previousChannelTimeline) {
+        queryClient.setQueryData(channelQueryKey, context.previousChannelTimeline);
       }
-      if (aggregatedMessagesQueryKey && context?.previousAggregatedTimeline) {
-        queryClient.setQueryData(aggregatedMessagesQueryKey, context.previousAggregatedTimeline);
+      if (aggregatedQueryKey && context?.previousAggregatedTimeline) {
+        queryClient.setQueryData(aggregatedQueryKey, context.previousAggregatedTimeline);
       }
 
       const description = error instanceof Error ? error.message : "Please try again.";
@@ -401,8 +475,11 @@ export default function Chat() {
       });
     },
     onSuccess: (savedMessage, _variables, context) => {
-      if (messagesQueryKey) {
-        queryClient.setQueryData<ChatMessagesResponse>(messagesQueryKey, (old) => {
+      const channelQueryKey = context?.channelQueryKey;
+      const aggregatedQueryKey = context?.aggregatedQueryKey;
+
+      if (channelQueryKey) {
+        queryClient.setQueryData<ChatMessagesResponse>(channelQueryKey, (old) => {
           if (!old) {
             return old;
           }
@@ -421,8 +498,8 @@ export default function Chat() {
         });
       }
 
-      if (aggregatedMessagesQueryKey) {
-        queryClient.setQueryData<ChatMessagesResponse>(aggregatedMessagesQueryKey, (old) => {
+      if (aggregatedQueryKey) {
+        queryClient.setQueryData<ChatMessagesResponse>(aggregatedQueryKey, (old) => {
           if (!old) {
             return old;
           }
@@ -499,49 +576,14 @@ export default function Chat() {
     },
   });
 
-  const { mutate: markRead, isPending: isMarkingRead } = useMutation<void, unknown, { messageId: string; timestamp: Date }>({
-    mutationFn: async ({ messageId, timestamp }) => {
-      if (!channelId || !currentWorkspaceId) {
-        return;
-      }
-      await apiRequest("POST", "/api/messages/read-receipts", {
-        workspaceId: currentWorkspaceId,
-        userId: currentUserId,
-        channelId,
-        lastReadMessageId: messageId,
-        lastReadAt: timestamp,
-      });
-    },
-    onSuccess: (_data, variables) => {
-      if (messagesQueryKey) {
-        queryClient.setQueryData<ChatMessagesResponse>(messagesQueryKey, (old) => {
-          if (!old) {
-            return old;
-          }
-          const updatedReceipt: ChatReadReceiptDto = {
-            id: old.readReceipt?.id ?? `temp-${currentUserId}-${channelId}`,
-            workspaceId: currentWorkspaceId,
-            userId: currentUserId,
-            channelId: channelId ?? "",
-            lastReadMessageId: variables.messageId,
-            lastReadAt: variables.timestamp,
-          };
-          return {
-            ...old,
-            readReceipt: updatedReceipt,
-            unreadCount: 0,
-          };
-        });
-      }
-    },
-  });
-  
   const handleFaqResponse = useCallback(async (faq: FaqEntry) => {
-    if (!currentWorkspaceId || !channelId) {
+    const workspaceId = currentWorkspaceId;
+    const activeChannelId = channelId;
+    if (!workspaceId || !activeChannelId) {
       console.error("Missing workspace or channel ID");
       return;
     }
-    
+
     const responseContent = `FAQ Answer: ${faq.question}
 
 ${faq.answer}` +
@@ -550,8 +592,8 @@ ${faq.answer}` +
 Knowledge: ${KNOWLEDGE_ROUTE_BASE}/${faq.relatedKnowledgeId}` : "");
     try {
       await apiRequest("POST", "/api/messages", {
-        workspaceId: currentWorkspaceId,
-        channelId,
+        workspaceId,
+        channelId: activeChannelId,
         content: responseContent,
         userId: "biz-assistant",
         userName: "Biz Assistant",
@@ -571,7 +613,9 @@ Knowledge: ${KNOWLEDGE_ROUTE_BASE}/${faq.relatedKnowledgeId}` : "");
   }, [currentWorkspaceId, channelId, toast]);
 
   const handleSendMessage = async (content: string, file?: File | null) => {
-    if (!currentWorkspaceId || !channelId) {
+    const workspaceId = currentWorkspaceId;
+    const activeChannelId = channelId;
+    if (!workspaceId || !activeChannelId) {
       toast({
         title: t("chat.message.sendError"),
         description: t("chat.message.selectWorkspace"),
@@ -587,8 +631,8 @@ Knowledge: ${KNOWLEDGE_ROUTE_BASE}/${faq.relatedKnowledgeId}` : "");
     if (file) {
       try {
         const uploaded = await uploadChatAttachment(file, {
-          workspaceId: currentWorkspaceId,
-          channelId,
+          workspaceId,
+          channelId: activeChannelId,
         });
         attachments.push(uploaded);
       } catch (error) {
@@ -716,7 +760,8 @@ Knowledge: ${KNOWLEDGE_ROUTE_BASE}/${faq.relatedKnowledgeId}` : "");
   };
 
   const handleShareKnowledge = async (knowledgeId: string, title: string, summary: string) => {
-    if (!currentWorkspaceId) {
+    const workspaceId = currentWorkspaceId;
+    if (!workspaceId) {
       toast({
         title: "Unable to share",
         description: "Select a workspace and try again.",
@@ -732,7 +777,7 @@ ${summary}
 ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
     try {
       await apiRequest("POST", "/api/messages", {
-        workspaceId: currentWorkspaceId,
+        workspaceId,
         content: message,
         userId: currentUserId,
         userName: currentUserName,
@@ -792,20 +837,21 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
     setThreadMessages([]);
   };
 
-  const handleSendThreadReply = async (content: string, _file?: File | null) => {
+  const handleSendThreadReply = async (content: string, file?: File | null) => {
     if (!selectedThread) return;
 
+    const formattedContent = file ? `${content}\n\n(Attached file: ${file.name})` : content;
 
     // Mock sending thread reply - in real app, this would be an API call
     const newReply = {
       id: `thread-${selectedThread}-${Date.now()}`,
       userId: currentUserId,
       userName: currentUserName,
-      content,
+      content: formattedContent,
       timestamp: new Date(),
       isOwn: true,
     };
-    
+
     setThreadMessages(prev => [...prev, newReply]);
   };
 

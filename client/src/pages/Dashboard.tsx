@@ -53,6 +53,21 @@ export default function Dashboard() {
     [currentWorkspaceId],
   );
 
+  const tasksQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/tasks", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
+  const knowledgeQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/knowledge", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
+  const meetingsQueryKey = useMemo(
+    () => (currentWorkspaceId ? (["/api/meetings", currentWorkspaceId] as const) : null),
+    [currentWorkspaceId],
+  );
+
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: statsQueryKey ?? ["/api/stats", ""],
     enabled: Boolean(statsQueryKey),
@@ -88,16 +103,43 @@ export default function Dashboard() {
 
   const messages: ChatMessageWithExtrasDto[] = messagesTimeline?.messages ?? [];
 
-  const { data: tasks, isLoading: tasksLoading } = useQuery<Task[]>({
-    queryKey: ["/api/tasks"],
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
+    queryKey: tasksQueryKey ?? ["/api/tasks", ""],
+    enabled: Boolean(tasksQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const response = await fetch(`/api/tasks?workspaceId=${workspaceId}`, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return (await response.json()) as Task[];
+    },
   });
 
-  const { data: knowledge, isLoading: knowledgeLoading } = useQuery<KnowledgeArticle[]>({
-    queryKey: ["/api/knowledge"],
+  const { data: knowledge = [], isLoading: knowledgeLoading } = useQuery<KnowledgeArticle[]>({
+    queryKey: knowledgeQueryKey ?? ["/api/knowledge", ""],
+    enabled: Boolean(knowledgeQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const response = await fetch(`/api/knowledge?workspaceId=${workspaceId}`, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return (await response.json()) as KnowledgeArticle[];
+    },
   });
 
-  const { data: meetings, isLoading: meetingsLoading } = useQuery<Meeting[]>({
-    queryKey: ["/api/meetings"],
+  const { data: meetings = [], isLoading: meetingsLoading } = useQuery<Meeting[]>({
+    queryKey: meetingsQueryKey ?? ["/api/meetings", ""],
+    enabled: Boolean(meetingsQueryKey),
+    queryFn: async ({ queryKey }) => {
+      const [, workspaceId] = queryKey as [string, string];
+      const response = await fetch(`/api/meetings?workspaceId=${workspaceId}`, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return (await response.json()) as Meeting[];
+    },
   });
 
   const handleRequestTaskCreation = (messageId: string) => {
@@ -163,11 +205,19 @@ export default function Dashboard() {
   };
 
   const recentMessages = useMemo(() => {
-    return messages.slice(0, 2).map((message) => ({
-      ...message,
-      timestamp: new Date(message.createdAt),
-    }));
-  }, [messages]);
+    return messages.slice(0, 2).map((message) => {
+      const normalizedReactions = (message.reactions ?? []).map((reaction) => ({
+        ...reaction,
+        hasReacted: currentUserId ? reaction.userIds.includes(currentUserId) : false,
+      }));
+
+      return {
+        ...message,
+        timestamp: new Date(message.createdAt),
+        reactions: normalizedReactions,
+      };
+    });
+  }, [messages, currentUserId]);
   const upcomingTasks =
     tasks?.slice(0, 2).map((task) => {
       const allowedStatuses: TaskStatus[] = ["todo", "in-progress", "review", "done"];

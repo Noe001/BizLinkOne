@@ -231,7 +231,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tasks API
   app.get("/api/tasks", async (req, res) => {
     try {
-      const tasks = await storage.getTasks();
+      const { workspaceId } = req.query;
+
+      if (!workspaceId || typeof workspaceId !== "string") {
+        return res.status(400).json({ error: "workspaceId is required" });
+      }
+
+      const tasks = await storage.getTasks(workspaceId);
       res.json(tasks);
     } catch (error) {
       handleError(error, "get tasks", res);
@@ -288,7 +294,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Knowledge Articles API
   app.get("/api/knowledge", async (req, res) => {
     try {
-      const articles = await storage.getKnowledgeArticles();
+      const { workspaceId } = req.query;
+
+      if (!workspaceId || typeof workspaceId !== "string") {
+        return res.status(400).json({ error: "workspaceId is required" });
+      }
+
+      const articles = await storage.getKnowledgeArticles(workspaceId);
       res.json(articles);
     } catch (error) {
       handleError(error, "get knowledge articles", res);
@@ -330,7 +342,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Meetings API
   app.get("/api/meetings", async (req, res) => {
     try {
-      const meetings = await storage.getMeetings();
+      const { workspaceId } = req.query;
+
+      if (!workspaceId || typeof workspaceId !== "string") {
+        return res.status(400).json({ error: "workspaceId is required" });
+      }
+
+      const meetings = await storage.getMeetings(workspaceId);
       res.json(meetings);
     } catch (error) {
       handleError(error, "get meetings", res);
@@ -393,16 +411,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "workspaceId is required" });
       }
 
-      const [messages, tasks, knowledge, meetings] = await Promise.all([
+      const [messages, workspaceTasks, workspaceKnowledge, workspaceMeetings] = await Promise.all([
         storage.getChatMessages(workspaceId),
-        storage.getTasks(),
-        storage.getKnowledgeArticles(),
-        storage.getMeetings()
+        storage.getTasks(workspaceId),
+        storage.getKnowledgeArticles(workspaceId),
+        storage.getMeetings(workspaceId)
       ]);
-
-      const workspaceTasks = tasks.filter(task => task.workspaceId === workspaceId);
-      const workspaceKnowledge = knowledge.filter(article => article.workspaceId === workspaceId);
-      const workspaceMeetings = meetings.filter(meeting => meeting.workspaceId === workspaceId);
 
       const now = new Date();
       const upcomingMeetings = workspaceMeetings.filter(m =>
