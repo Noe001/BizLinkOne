@@ -2,12 +2,16 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { workspaceService } from "./services/workspace";
-import { 
-  insertChatMessageSchema, 
-  insertTaskSchema, 
-  insertKnowledgeArticleSchema, 
-  insertMeetingSchema 
+import {
+  insertChatMessageSchema,
+  insertChatAttachmentSchema,
+  insertChatReactionSchema,
+  insertChatReadReceiptSchema,
+  insertTaskSchema,
+  insertKnowledgeArticleSchema,
+  insertMeetingSchema
 } from "@shared/schema";
+import type { ChatAttachment, ChatMessagesResponse, ChatReactionSummary } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 
@@ -18,13 +22,101 @@ function handleError(error: unknown, operation: string, res: any) {
   res.status(500).json({ error: message });
 }
 
+const attachmentInputSchema = insertChatAttachmentSchema.omit({ messageId: true, uploadedAt: true, id: true });
+const createChatMessageSchema = insertChatMessageSchema.extend({
+  attachments: z.array(attachmentInputSchema).optional(),
+});
+
+function buildReactionSummaries(reactions: Awaited<ReturnType<typeof storage.getChatReactions>>): Map<string, ChatReactionSummary[]> {
+  const summaries = new Map<string, ChatReactionSummary[]>();
+  for (const reaction of reactions) {
+    const list = summaries.get(reaction.messageId) ?? [];
+    let summary = list.find((item) => item.emoji === reaction.emoji);
+    if (!summary) {
+      summary = { emoji: reaction.emoji, count: 0, userIds: [] };
+      list.push(summary);
+    }
+    summary.count += 1;
+    summary.userIds.push(reaction.userId);
+    summaries.set(reaction.messageId, list);
+  }
+  return summaries;
+}
+
+function groupAttachmentsByMessage(attachments: ChatAttachment[]): Map<string, ChatAttachment[]> {
+  const grouped = new Map<string, ChatAttachment[]>();
+  for (const attachment of attachments) {
+    const list = grouped.get(attachment.messageId) ?? [];
+    list.push(attachment);
+    grouped.set(attachment.messageId, list);
+  }
+  return grouped;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Chat Messages API
   app.get("/api/messages", async (req, res) => {
     try {
-      const { channelId } = req.query;
-      const messages = await storage.getChatMessages(channelId as string);
-      res.json(messages);
+      const { channelId, workspaceId, userId } = req.query;
+
+      if (!workspaceId || typeof workspaceId !== "string") {
+        return res.status(400).json({ error: "workspaceId is required" });
+      }
+
+      const channelFilter = typeof channelId === "string" ? channelId : undefined;
+      const messages = await storage.getChatMessages(workspaceId, channelFilter);
+      const messageIds = messages.map((message) => message.id);
+
+      const [attachments, reactions] = await Promise.all([
+        storage.getChatAttachments(messageIds),
+        storage.getChatReactions(messageIds),
+      ]);
+
+      const attachmentsByMessage = groupAttachmentsByMessage(attachments);
+      const reactionSummaries = buildReactionSummaries(reactions);
+
+      const enrichedMessages = messages.map((message) => ({
+        ...message,
+        attachments: attachmentsByMessage.get(message.id) ?? [],
+        reactions: reactionSummaries.get(message.id) ?? [],
+      }));
+
+      let readReceipt: ChatMessagesResponse["readReceipt"] = null;
+      let unreadCount = 0;
+
+      if (
+        typeof userId === "string" &&
+        typeof channelId === "string" &&
+        channelFilter
+      ) {
+        const receipt = await storage.getReadReceipt(workspaceId, userId, channelFilter);
+        if (receipt) {
+          readReceipt = receipt;
+        }
+        const lastReadAt = receipt?.lastReadAt ? new Date(receipt.lastReadAt) : null;
+        unreadCount = enrichedMessages.reduce((count, message) => {
+          if (message.userId === userId) {
+            return count;
+          }
+          const createdAt = message.createdAt instanceof Date
+            ? message.createdAt
+            : new Date(message.createdAt);
+          if (!lastReadAt || createdAt > lastReadAt) {
+            return count + 1;
+          }
+          return count;
+        }, 0);
+      } else {
+        unreadCount = 0;
+      }
+
+      const response: ChatMessagesResponse = {
+        messages: enrichedMessages,
+        unreadCount,
+        readReceipt,
+      };
+
+      res.json(response);
     } catch (error) {
       handleError(error, "get messages", res);
     }
@@ -32,17 +124,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/messages", async (req, res) => {
     try {
-      const result = insertChatMessageSchema.safeParse(req.body);
+      const result = createChatMessageSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ 
-          error: fromZodError(result.error).toString() 
+        return res.status(400).json({
+          error: fromZodError(result.error).toString()
         });
       }
-      
-      const message = await storage.createChatMessage(result.data);
-      res.status(201).json(message);
+
+      const { attachments = [], ...messagePayload } = result.data;
+
+      const message = await storage.createChatMessage(messagePayload);
+      const savedAttachments = await Promise.all(
+        attachments.map((attachment) =>
+          storage.createChatAttachment({
+            ...attachment,
+            messageId: message.id,
+          })
+        )
+      );
+
+      await storage.upsertReadReceipt({
+        workspaceId: message.workspaceId,
+        userId: message.userId,
+        channelId: message.channelId,
+        lastReadMessageId: message.id,
+        lastReadAt: message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt),
+      });
+
+      const response: ChatMessagesResponse["messages"][number] = {
+        ...message,
+        attachments: savedAttachments,
+        reactions: [],
+      };
+
+      res.status(201).json(response);
     } catch (error) {
       handleError(error, "create message", res);
+    }
+  });
+
+  app.post("/api/messages/:id/reactions", async (req, res) => {
+    try {
+      const messageId = req.params.id;
+      const reactionPayload = {
+        ...req.body,
+        messageId,
+      };
+
+      const result = insertChatReactionSchema.safeParse(reactionPayload);
+      if (!result.success) {
+        return res.status(400).json({
+          error: fromZodError(result.error).toString(),
+        });
+      }
+
+      await storage.addChatReaction(result.data);
+      const summaries = buildReactionSummaries(
+        await storage.getChatReactions([messageId])
+      );
+
+      res.status(201).json(summaries.get(messageId) ?? []);
+    } catch (error) {
+      handleError(error, "add reaction", res);
+    }
+  });
+
+  app.delete("/api/messages/:id/reactions", async (req, res) => {
+    try {
+      const messageId = req.params.id;
+      const { userId, emoji } = req.query;
+
+      if (typeof userId !== "string" || typeof emoji !== "string") {
+        return res.status(400).json({ error: "userId and emoji are required" });
+      }
+
+      await storage.removeChatReaction(messageId, userId, emoji);
+      const summaries = buildReactionSummaries(
+        await storage.getChatReactions([messageId])
+      );
+
+      res.json(summaries.get(messageId) ?? []);
+    } catch (error) {
+      handleError(error, "remove reaction", res);
+    }
+  });
+
+  app.post("/api/messages/read-receipts", async (req, res) => {
+    try {
+      const schema = insertChatReadReceiptSchema.extend({
+        lastReadAt: z.coerce.date().optional(),
+      });
+      const result = schema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({
+          error: fromZodError(result.error).toString(),
+        });
+      }
+
+      const receipt = await storage.upsertReadReceipt(result.data);
+      res.status(200).json(receipt);
+    } catch (error) {
+      handleError(error, "update read receipt", res);
     }
   });
 
@@ -205,30 +387,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard Stats API
   app.get("/api/stats", async (req, res) => {
     try {
+      const { workspaceId } = req.query;
+
+      if (!workspaceId || typeof workspaceId !== "string") {
+        return res.status(400).json({ error: "workspaceId is required" });
+      }
+
       const [messages, tasks, knowledge, meetings] = await Promise.all([
-        storage.getChatMessages(),
+        storage.getChatMessages(workspaceId),
         storage.getTasks(),
         storage.getKnowledgeArticles(),
         storage.getMeetings()
       ]);
-      
+
+      const workspaceTasks = tasks.filter(task => task.workspaceId === workspaceId);
+      const workspaceKnowledge = knowledge.filter(article => article.workspaceId === workspaceId);
+      const workspaceMeetings = meetings.filter(meeting => meeting.workspaceId === workspaceId);
+
       const now = new Date();
-      const upcomingMeetings = meetings.filter(m => 
+      const upcomingMeetings = workspaceMeetings.filter(m =>
         new Date(m.startTime) > now && m.status === 'scheduled'
       );
-      
-      const pendingTasks = tasks.filter(t => 
+
+      const pendingTasks = workspaceTasks.filter(t =>
         t.status !== 'done'
       );
-      
-      const recentMessages = messages.filter(m => 
+
+      const recentMessages = messages.filter(m =>
         new Date(m.createdAt) > new Date(now.getTime() - 24 * 60 * 60 * 1000)
       );
-      
+
       const stats = {
         activeChats: recentMessages.length,
         pendingTasks: pendingTasks.length,
-        knowledgeArticles: knowledge.length,
+        knowledgeArticles: workspaceKnowledge.length,
         upcomingMeetings: upcomingMeetings.length
       };
       

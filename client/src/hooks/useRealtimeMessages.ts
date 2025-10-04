@@ -24,30 +24,30 @@ export function useRealtimeMessages({ channelId, enabled = true }: UseRealtimeMe
 
   const handleNewMessage = useCallback((payload: any) => {
     console.log("📨 New message received:", payload);
-    
+
     // Query キャッシュを無効化して最新メッセージを取得
-    queryClient.invalidateQueries({ 
-      queryKey: ["chatMessages", "channel", channelId] 
+    queryClient.invalidateQueries({
+      queryKey: ["chatMessages", currentWorkspaceId ?? "", "channel", channelId]
     });
-  }, [channelId]);
+  }, [channelId, currentWorkspaceId]);
 
   const handleMessageUpdate = useCallback((payload: any) => {
     console.log("✏️ Message updated:", payload);
-    
+
     // Query キャッシュを無効化
-    queryClient.invalidateQueries({ 
-      queryKey: ["chatMessages", "channel", channelId] 
+    queryClient.invalidateQueries({
+      queryKey: ["chatMessages", currentWorkspaceId ?? "", "channel", channelId]
     });
-  }, [channelId]);
+  }, [channelId, currentWorkspaceId]);
 
   const handleMessageDelete = useCallback((payload: any) => {
     console.log("🗑️ Message deleted:", payload);
-    
+
     // Query キャッシュを無効化
-    queryClient.invalidateQueries({ 
-      queryKey: ["chatMessages", "channel", channelId] 
+    queryClient.invalidateQueries({
+      queryKey: ["chatMessages", currentWorkspaceId ?? "", "channel", channelId]
     });
-  }, [channelId]);
+  }, [channelId, currentWorkspaceId]);
 
   useEffect(() => {
     // 購読が無効、またはワークスペース/チャンネルIDがない場合は早期リターン

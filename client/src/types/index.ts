@@ -4,3 +4,5 @@ export interface MessageModalContext {
   authorName: string;
   channelId?: string;
 }
+
+export * from './chat';

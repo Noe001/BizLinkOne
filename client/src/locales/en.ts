@@ -2663,6 +2663,24 @@ export const en = {
         flag: "Report",
         delete: "Delete",
       },
+      attachmentPlaceholder: "Attachment",
+      attachmentUploadFailed: "Failed to upload attachment",
+      tryAgain: "Please try again.",
+      sendError: "We couldn't send your message",
+      selectWorkspace: "Select a workspace and try again.",
+      reactionFailed: "Failed to update reaction",
+      unreadSeparator: "New messages",
+      you: "You",
+      attachments: {
+        imageAlt: "Preview of {{fileName}}",
+      },
+    },
+    filters: {
+      unreadOnly: "Unread only",
+      threadsOnly: "Threads only",
+    },
+    reactions: {
+      addPrompt: "Click to add a reaction",
     },
   },
   workspace: {

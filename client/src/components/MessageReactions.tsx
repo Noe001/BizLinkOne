@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/popover';
 import { Smile, ThumbsUp, Heart, Laugh, Frown, Angry } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface Reaction {
   emoji: string;
@@ -43,6 +44,7 @@ export function MessageReactions({
   onRemoveReaction,
   disabled = false,
 }: MessageReactionsProps) {
+  const { t } = useTranslation();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const handleReactionClick = (emoji: string, hasReacted: boolean) => {
@@ -93,39 +95,41 @@ export function MessageReactions({
       ))}
 
       {/* Add reaction button */}
-      <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={disabled}
-            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Smile className="h-3 w-3" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-2" align="start">
-          <div className="grid grid-cols-5 gap-1">
-            {QUICK_REACTIONS.map((reaction) => (
-              <Button
-                key={reaction.emoji}
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEmojiSelect(reaction.emoji)}
-                className="h-10 w-10 text-xl hover:bg-accent"
-                title={reaction.label}
-              >
-                {reaction.emoji}
-              </Button>
-            ))}
-          </div>
-          <div className="mt-2 pt-2 border-t">
-            <p className="text-xs text-muted-foreground text-center">
-              クリックしてリアクションを追加
-            </p>
-          </div>
-        </PopoverContent>
-      </Popover>
+      {onAddReaction && (
+        <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={disabled}
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Smile className="h-3 w-3" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2" align="start">
+            <div className="grid grid-cols-5 gap-1">
+              {QUICK_REACTIONS.map((reaction) => (
+                <Button
+                  key={reaction.emoji}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEmojiSelect(reaction.emoji)}
+                  className="h-10 w-10 text-xl hover:bg-accent"
+                  title={reaction.label}
+                >
+                  {reaction.emoji}
+                </Button>
+              ))}
+            </div>
+            <div className="mt-2 pt-2 border-t">
+              <p className="text-xs text-muted-foreground text-center">
+                {t('chat.reactions.addPrompt')}
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 }

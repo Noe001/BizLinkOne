@@ -7,15 +7,15 @@ import { FileUploadButton } from "./FileUploadButton";
 import { KNOWLEDGE_ROUTE_BASE, KNOWLEDGE_COMMANDS, SLASH_COMMANDS, type KnowledgeCommand } from "@/constants/commands";
 
 interface ChatInputProps {
-  onSendMessage: (message: string, file?: File) => void;
+  onSendMessage: (message: string, file?: File | null) => Promise<void> | void;
   placeholder?: string;
   disabled?: boolean;
   showShortcut?: boolean;
   onShareKnowledge?: (knowledgeId: string, title: string, summary: string) => void;
 }
 
-export function ChatInput({ 
-  onSendMessage, 
+export function ChatInput({
+  onSendMessage,
   placeholder = "Type a message...", 
   disabled = false, 
   showShortcut = true,
@@ -39,9 +39,9 @@ export function ChatInput({
     }
   };
 
-  const handleKnowledgeSelect = (knowledge: KnowledgeSearchArticle) => {
+  const handleKnowledgeSelect = async (knowledge: KnowledgeSearchArticle) => {
     const knowledgeMessage = `📚 **${knowledge.title}**\n\n${knowledge.summary}\n\n[View full article](${KNOWLEDGE_ROUTE_BASE}/${knowledge.id})`;
-    onSendMessage(knowledgeMessage);
+    await onSendMessage(knowledgeMessage, null);
     onShareKnowledge?.(knowledge.id, knowledge.title, knowledge.summary);
   };
 
@@ -51,7 +51,7 @@ export function ChatInput({
     textareaRef.current?.focus();
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmedMessage = message.trim();
     if ((trimmedMessage || selectedFile) && !disabled) {
       // Handle special commands
@@ -62,7 +62,7 @@ export function ChatInput({
       }
 
       console.log(`Sending message: ${trimmedMessage}`);
-      onSendMessage(trimmedMessage, selectedFile || undefined);
+      await onSendMessage(trimmedMessage, selectedFile);
       setMessage("");
       setSelectedFile(null);
     }
@@ -71,7 +71,7 @@ export function ChatInput({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && e.ctrlKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
     
     if (e.key === "Escape" && showCommands) {
@@ -200,8 +200,8 @@ export function ChatInput({
 
               <Button
                 size="icon"
-                onClick={handleSend}
-                disabled={!message.trim() || disabled}
+                onClick={() => void handleSend()}
+                disabled={disabled || (!message.trim() && !selectedFile)}
                 data-testid="button-send-message"
                 className="h-7 w-7 bg-green-600 hover:bg-blue-600 dark:bg-green-700 dark:hover:bg-blue-700 transition-colors duration-200"
               >
