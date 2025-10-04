@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useLocation, Link } from "wouter";
 import { useTranslation } from "@/contexts/LanguageContext";
+import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 
 // todo: remove mock functionality
 const mockChannels = [
@@ -70,12 +71,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-md">
-            <MessageSquare className="w-4 h-4" />
-          </div>
-          <span className="font-semibold text-lg font-mono">BizLinkOne</span>
-        </div>
+        <WorkspaceSwitcher />
       </SidebarHeader>
 
       <SidebarContent>

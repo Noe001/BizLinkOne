@@ -5,26 +5,46 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface LoginPageProps {
-  onLogin: () => void;
+  onLogin?: () => void;
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    onLogin();
-    setLocation('/');
+    setError(null);
+
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        setError(error.message || t('auth.login.error'));
+      } else {
+        // ログイン成功
+        if (onLogin) onLogin();
+        setLocation('/');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(t('auth.login.error'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -46,6 +66,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t('auth.login.emailLabel')}</Label>

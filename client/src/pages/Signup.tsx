@@ -6,16 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SignupPageProps {
-  onSignup: () => void;
+  onSignup?: () => void;
 }
 
 export default function SignupPage({ onSignup }: SignupPageProps) {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
+  const { signUp } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,29 +29,43 @@ export default function SignupPage({ onSignup }: SignupPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
     if (formData.password !== formData.confirmPassword) {
-      alert(t('auth.signup.passwordMismatch'));
+      setError(t('auth.signup.passwordMismatch'));
       return;
     }
     
     if (!formData.agreeToTerms) {
-      alert(t('auth.signup.termsAgreementRequired'));
+      setError(t('auth.signup.termsAgreementRequired'));
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      const { error } = await signUp(formData.email, formData.password, formData.name);
+      
+      if (error) {
+        setError(error.message || t('auth.signup.error'));
+      } else {
+        // サインアップ成功 - メール確認ページにリダイレクト
+        setLocation(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+      }
+    } catch (err) {
+      console.error('Signup error:', err);
+      setError(t('auth.signup.error'));
+    } finally {
       setIsLoading(false);
-      setLocation('/workspace/create');
-    }, 1000);
+    }
   };
 
   return (
@@ -79,6 +96,13 @@ export default function SignupPage({ onSignup }: SignupPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">{t('auth.signup.nameLabel')}</Label>

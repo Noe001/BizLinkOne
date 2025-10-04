@@ -7,6 +7,10 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
+// Demo workspace ID for seed data
+const DEMO_WORKSPACE_ID = "demo-workspace-1";
+const DEMO_USER_ID = "demo-user-1";
+
 // modify the interface with any CRUD methods
 // you might need
 
@@ -62,14 +66,22 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    // username is actually email in this context
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.email === username,
     );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const now = new Date();
+    const user: User = { 
+      ...insertUser, 
+      id,
+      avatarUrl: null,
+      createdAt: now,
+      updatedAt: now,
+    };
     this.users.set(id, user);
     return user;
   }
@@ -80,7 +92,7 @@ export class MemStorage implements IStorage {
     if (channelId) {
       return messages.filter(msg => msg.channelId === channelId);
     }
-    return messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
   async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
@@ -88,8 +100,10 @@ export class MemStorage implements IStorage {
     const message: ChatMessage = {
       ...insertMessage,
       id,
-      channelId: insertMessage.channelId ?? null,
-      timestamp: new Date()
+      parentMessageId: insertMessage.parentMessageId ?? null,
+      editedAt: null,
+      deletedAt: null,
+      createdAt: new Date()
     };
     this.chatMessages.set(id, message);
     return message;
@@ -212,21 +226,27 @@ export class MemStorage implements IStorage {
     const messages: ChatMessage[] = [
       {
         id: randomUUID(),
+        workspaceId: DEMO_WORKSPACE_ID,
+        channelId: "general",
         userId: "john-doe",
         userName: "John Doe",
         content: "The new authentication system is ready for testing. Can someone review the PR?",
-        channelId: "general",
-        channelType: "channel",
-        timestamp: new Date(now.getTime() - 15 * MINUTES),
+        parentMessageId: null,
+        editedAt: null,
+        deletedAt: null,
+        createdAt: new Date(now.getTime() - 15 * MINUTES),
       },
       {
         id: randomUUID(),
+        workspaceId: DEMO_WORKSPACE_ID,
+        channelId: "general",
         userId: "sarah-wilson",
         userName: "Sarah Wilson",
         content: "I've updated the API documentation with the latest endpoints.",
-        channelId: "general",
-        channelType: "channel",
-        timestamp: new Date(now.getTime() - 30 * MINUTES),
+        parentMessageId: null,
+        editedAt: null,
+        deletedAt: null,
+        createdAt: new Date(now.getTime() - 30 * MINUTES),
       },
     ];
     messages.forEach(msg => this.chatMessages.set(msg.id, msg));
@@ -235,6 +255,7 @@ export class MemStorage implements IStorage {
     const tasks: Task[] = [
       {
         id: randomUUID(),
+        workspaceId: DEMO_WORKSPACE_ID,
         title: "Review authentication PR",
         description: "Review the new authentication system implementation",
         status: "todo",
@@ -242,10 +263,12 @@ export class MemStorage implements IStorage {
         assigneeId: "current",
         assigneeName: "You",
         dueDate: new Date(now.getTime() + DAYS),
+        createdBy: DEMO_USER_ID,
         createdAt: now,
       },
       {
         id: randomUUID(),
+        workspaceId: DEMO_WORKSPACE_ID,
         title: "Update deployment docs",
         description: "Update documentation for the new deployment process",
         status: "in-progress",
@@ -253,6 +276,7 @@ export class MemStorage implements IStorage {
         assigneeId: "sarah",
         assigneeName: "Sarah Wilson",
         dueDate: new Date(now.getTime() + 3 * DAYS),
+        createdBy: DEMO_USER_ID,
         createdAt: now,
       },
     ];
@@ -262,6 +286,7 @@ export class MemStorage implements IStorage {
     const articles: KnowledgeArticle[] = [
       {
         id: randomUUID(),
+        workspaceId: DEMO_WORKSPACE_ID,
         title: "Authentication Best Practices",
         content: "Guidelines for implementing secure authentication in our applications...",
         excerpt: "Guidelines for implementing secure authentication in our applications.",
@@ -279,6 +304,7 @@ export class MemStorage implements IStorage {
     const meetings: Meeting[] = [
       {
         id: randomUUID(),
+        workspaceId: DEMO_WORKSPACE_ID,
         title: "Daily Standup",
         description: "Daily team sync meeting",
         startTime: new Date(now.getTime() + 30 * MINUTES),
@@ -290,6 +316,7 @@ export class MemStorage implements IStorage {
           { id: "mike", name: "Mike Johnson" },
         ],
         meetingUrl: "https://meet.google.com/abc-def-ghi",
+        createdBy: DEMO_USER_ID,
         createdAt: now,
       },
     ];

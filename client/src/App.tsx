@@ -8,6 +8,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppSidebar } from "@/components/AppSidebar";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
+import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
+import { WorkspaceSwitcherMobile } from "@/components/WorkspaceSwitcherMobile";
 import { NotificationsProvider } from "@/components/NotificationPanel";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceDataProvider } from "@/contexts/WorkspaceDataContext";
@@ -23,10 +25,15 @@ import Knowledge from "@/pages/Knowledge";
 import Meetings from "@/pages/Meetings";
 import Settings from "@/pages/Settings";
 import AccountSettings from "@/pages/AccountSettings";
-import LoginPage from "@/pages/Login";
-import SignupPage from "@/pages/Signup";
+import LoginPage from "@/pages/LoginNew";
+import SignupPage from "@/pages/SignupEmail";
+import SignupComplete from "@/pages/SignupComplete";
+import LandingPage from "@/pages/Landing";
+import VerifyEmailPage from "@/pages/VerifyEmail";
+import WorkspaceSelectPage from "@/pages/WorkspaceSelect";
 import WorkspaceCreatePage from "@/pages/WorkspaceCreate";
-import WorkspaceJoinPage from "@/pages/WorkspaceJoin";
+import WorkspaceJoinPage from "@/pages/WorkspaceJoinNew";
+import WorkspaceSettingsPage from "@/pages/WorkspaceSettings";
 import NotFound from "@/pages/not-found";
 import { HeaderBellDropdown } from "@/components/HeaderBellDropdown";
 import { Button } from "@/components/ui/button";
@@ -35,8 +42,18 @@ import { cn } from "@/lib/utils";
 import { MobileNav } from "@/components/MobileNav";
 
 function AuthenticatedRouter() {
+  const [location, setLocation] = useLocation();
+
+  const handleWorkspaceCreate = () => {
+    // ワークスペース作成後、ダッシュボードにリダイレクト
+    setLocation("/");
+  };
+
   return (
     <Switch>
+      <Route path="/workspace/select" component={WorkspaceSelectPage} />
+      <Route path="/workspace/create" component={() => <WorkspaceCreatePage onWorkspaceCreate={handleWorkspaceCreate} />} />
+      <Route path="/settings/workspace" component={WorkspaceSettingsPage} />
       <Route path="/" component={Dashboard} />
       <Route path="/chat/:type/:id" component={Chat} />
       <Route path="/projects" component={Projects} />
@@ -52,54 +69,24 @@ function AuthenticatedRouter() {
 }
 
 function UnauthenticatedRouter() {
-  const { login } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
-  const handleLogin = () => {
-    // Mock login with demo credentials
-    login({
-      id: "user-1",
-      name: "John Doe",
-      email: "john.doe@company.com",
-      role: "Admin"
-    });
-    setLocation("/");
-  };
-
-  const handleSignup = () => {
-    // After signup, send the user to workspace creation
-    setLocation("/workspace/create");
-  };
-
-  const handleWorkspaceCreate = () => {
-    // After workspace creation, log the user in
-    login({
-      id: "user-1",
-      name: "John Doe",
-      email: "john.doe@company.com",
-      role: "Admin"
-    });
-    setLocation("/");
-  };
-
-  const handleWorkspaceJoin = () => {
-    // After joining a workspace, log the user in
-    login({
-      id: "user-1",
-      name: "John Doe",
-      email: "john.doe@company.com",
-      role: "Member"
-    });
-    setLocation("/");
-  };
+  // URLからemailとinviteパラメータを取得
+  const searchParams = new URLSearchParams(window.location.search);
+  const emailParam = searchParams.get('email');
+  const inviteParam = searchParams.get('invite');
 
   return (
     <Switch>
-      <Route path="/login" component={() => <LoginPage onLogin={handleLogin} />} />
-      <Route path="/signup" component={() => <SignupPage onSignup={handleSignup} />} />
-      <Route path="/workspace/create" component={() => <WorkspaceCreatePage onWorkspaceCreate={handleWorkspaceCreate} />} />
-      <Route path="/workspace/join" component={() => <WorkspaceJoinPage onWorkspaceJoin={handleWorkspaceJoin} />} />
-      <Route component={() => { setLocation("/login"); return null; }} />
+      <Route path="/" component={LandingPage} />
+      <Route path="/login" component={() => <LoginPage />} />
+      <Route path="/signup" component={SignupPage} />
+      <Route path="/signup/verify" component={() => <VerifyEmailPage email={emailParam || undefined} />} />
+      <Route path="/signup/complete" component={SignupComplete} />
+      <Route path="/workspace/join" component={WorkspaceJoinPage} />
+      {/* 旧互換性用（verify-emailは新しいフローではsignup/verifyを使用） */}
+      <Route path="/verify-email" component={() => <VerifyEmailPage email={emailParam || undefined} />} />
+      <Route component={() => { setLocation("/"); return null; }} />
     </Switch>
   );
 }
@@ -189,9 +176,12 @@ function AuthenticatedApp() {
           <header className={headerClassName}>
             <div className="flex items-center gap-2 flex-1 min-w-0">
               {isMobile && (
-                <SidebarTrigger
-                  className="!h-10 !w-10 shrink-0 rounded-lg border border-card-border/80 bg-card/60 text-muted-foreground shadow-none"
-                />
+                <>
+                  <SidebarTrigger
+                    className="!h-10 !w-10 shrink-0 rounded-lg border border-card-border/80 bg-card/60 text-muted-foreground shadow-none"
+                  />
+                  <WorkspaceSwitcherMobile />
+                </>
               )}
               <a href="/" className="flex min-w-0 flex-col justify-center">
                 <span className="text-base sm:text-lg uppercase font-sans font-light text-green-800 truncate">

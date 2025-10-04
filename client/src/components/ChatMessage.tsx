@@ -23,6 +23,7 @@ interface ChatMessageProps {
   isOwn?: boolean;
   isUnread?: boolean;
   isFirstUnread?: boolean;
+  isPending?: boolean; // 送信中フラグ
   threadId?: string;
   threadCount?: number;
   lastThreadReply?: Date;
@@ -52,6 +53,7 @@ export function ChatMessage(props: ChatMessageProps) {
     isOwn = false,
     isUnread = false,
     isFirstUnread = false,
+    isPending = false,
     threadCount = 0,
     isPinned = false,
     canConvertToTask = true,
@@ -102,7 +104,9 @@ export function ChatMessage(props: ChatMessageProps) {
             <div
         className={`group flex gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3 hover:bg-accent/50 transition-colors touch-manipulation ${
           isUnread ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
-        } ${isPinned ? "bg-amber-50/30 dark:bg-amber-950/10" : ""}`}
+        } ${isPinned ? "bg-amber-50/30 dark:bg-amber-950/10" : ""} ${
+          isPending ? "opacity-60" : ""
+        }`}
         data-testid={`chat-message-${id}`}
         role="article"
         aria-label={`Message from ${userName}`}
@@ -118,7 +122,14 @@ export function ChatMessage(props: ChatMessageProps) {
           <div className={`flex items-baseline gap-2 mb-1 ${isOwn ? 'justify-end' : ''}`}>
             <span className="font-semibold text-sm text-foreground">{userName}</span>
             <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(timestamp, { addSuffix: true })}
+              {isPending ? (
+                <span className="flex items-center gap-1">
+                  <span className="animate-pulse">送信中</span>
+                  <span className="animate-spin inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full"></span>
+                </span>
+              ) : (
+                formatDistanceToNow(timestamp, { addSuffix: true })
+              )}
             </span>
             {isOwn && <Badge variant="outline" className="text-xs">You</Badge>}
 

@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Paperclip, Smile, Slash, AtSign, Bold, Italic, Code, Quote, BookOpen, Search } from "lucide-react";
 import { KnowledgeSearchModal, KnowledgeSearchArticle } from "./KnowledgeSearchModal";
+import { FileUploadButton } from "./FileUploadButton";
 import { KNOWLEDGE_ROUTE_BASE, KNOWLEDGE_COMMANDS, SLASH_COMMANDS, type KnowledgeCommand } from "@/constants/commands";
 
 interface ChatInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, file?: File) => void;
   placeholder?: string;
   disabled?: boolean;
   showShortcut?: boolean;
@@ -21,6 +22,7 @@ export function ChatInput({
   onShareKnowledge
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showKnowledgeModal, setShowKnowledgeModal] = useState(false);
   const [showCommands, setShowCommands] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,7 +53,7 @@ export function ChatInput({
 
   const handleSend = () => {
     const trimmedMessage = message.trim();
-    if (trimmedMessage && !disabled) {
+    if ((trimmedMessage || selectedFile) && !disabled) {
       // Handle special commands
       if (KNOWLEDGE_COMMANDS.includes(trimmedMessage as KnowledgeCommand)) {
         setShowKnowledgeModal(true);
@@ -60,8 +62,9 @@ export function ChatInput({
       }
 
       console.log(`Sending message: ${trimmedMessage}`);
-      onSendMessage(trimmedMessage);
+      onSendMessage(trimmedMessage, selectedFile || undefined);
       setMessage("");
+      setSelectedFile(null);
     }
   };
 
@@ -170,9 +173,12 @@ export function ChatInput({
           {/* Bottom action buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-0.5">
-              <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Attach file" data-testid="button-attach-bottom">
-                <Paperclip className="h-6 w-6" />
-              </Button>
+              <FileUploadButton
+                onFileSelect={setSelectedFile}
+                onFileRemove={() => setSelectedFile(null)}
+                selectedFile={selectedFile}
+                disabled={disabled}
+              />
               <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Mention user" data-testid="button-mention-bottom">
                 <AtSign className="h-6 w-6" />
               </Button>

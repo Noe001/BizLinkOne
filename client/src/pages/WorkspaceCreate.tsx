@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building2, Users, Briefcase, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WorkspaceCreatePageProps {
   onWorkspaceCreate: () => void;
@@ -40,6 +41,7 @@ type FormData = {
 export default function WorkspaceCreatePage({ onWorkspaceCreate }: WorkspaceCreatePageProps) {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
+  const { isAuthenticated, user, loading, setCurrentWorkspaceId } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     workspaceName: '',
     workspaceUrl: '',
@@ -48,6 +50,13 @@ export default function WorkspaceCreatePage({ onWorkspaceCreate }: WorkspaceCrea
     teamSize: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // 認証チェック
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      setLocation('/signup');
+    }
+  }, [isAuthenticated, loading, setLocation]);
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -61,15 +70,67 @@ export default function WorkspaceCreatePage({ onWorkspaceCreate }: WorkspaceCrea
     }
   };
 
-  const handleWorkspaceCreate = (e: React.FormEvent) => {
+  const handleWorkspaceCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.workspaceName,
+          slug: formData.workspaceUrl,
+          description: formData.description,
+          ownerId: user.id,
+          ownerEmail: user.email,
+          ownerName: user.name,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create workspace');
+      }
+
+      const workspace = await response.json();
+      console.log('Workspace created:', workspace);
+      
+      // ワークスペースIDを保存してダッシュボードへ
+      setCurrentWorkspaceId(workspace.id);
       onWorkspaceCreate();
-    }, 1500);
+    } catch (error) {
+      console.error('Failed to create workspace:', error);
+      alert(error instanceof Error ? error.message : 'ワークスペースの作成に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // ローディング中は何も表示しない
+  if (loading) {
+    return (
+      <div className="min-h-svh bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 未認証の場合は何も表示しない（リダイレクト待ち）
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-svh bg-background flex items-center justify-center px-4 py-6">

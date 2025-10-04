@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Hash, Users, Phone, Video, Settings, MessageSquare } from "lucide-react";
+import { Search, Hash, Users, Phone, Video, Settings, MessageSquare, Wifi, WifiOff } from "lucide-react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatThread } from "@/components/ChatThread";
@@ -21,6 +21,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspaceData } from "@/contexts/WorkspaceDataContext";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
+import { useOnlinePresence } from "@/hooks/useOnlinePresence";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 interface ChannelInfo {
   name: string;
@@ -38,6 +41,7 @@ interface DisplayMessage {
   timestamp: Date;
   isOwn: boolean;
   isUnread: boolean;
+  isPending?: boolean; // 送信中フラグ
   threadCount?: number;
   lastThreadReply?: Date;
   isFirstUnread?: boolean;
@@ -55,7 +59,7 @@ const getChannelInfo = (channelId: string): ChannelInfo => {
 };
 
 export default function Chat() {
-  const { user } = useAuth();
+  const { user, currentWorkspaceId } = useAuth();
   const currentUserId = user?.id ?? "user-1";
   const currentUserName = user?.name ?? "You";
   const { createTask: createWorkspaceTask, createKnowledge: createWorkspaceKnowledge } = useWorkspaceData();
@@ -70,6 +74,18 @@ export default function Chat() {
   const isChannelContext = contextType === "channel";
   const channelId = isChannelContext ? contextId : undefined;
   
+  // Realtime 機能を有効化（Supabase が設定されている場合のみ）
+  const realtimeEnabled = isSupabaseConfigured();
+  
+  // Realtime メッセージ購読
+  const { isConnected: isRealtimeConnected, error: realtimeError } = useRealtimeMessages({ 
+    channelId: channelId || "general",
+    enabled: realtimeEnabled && isChannelContext,
+  });
+  
+  // オンラインプレゼンス追跡
+  const { onlineUsers, isConnected: isPresenceConnected } = useOnlinePresence(currentWorkspaceId);
+  
   // Local state for filtering
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [showThreadsOnly, setShowThreadsOnly] = useState(false);
@@ -81,6 +97,18 @@ export default function Chat() {
 
   const [taskModalContext, setTaskModalContext] = useState<MessageModalContext | null>(null);
   const [knowledgeModalContext, setKnowledgeModalContext] = useState<MessageModalContext | null>(null);
+  
+  // Realtime エラーハンドリング
+  useEffect(() => {
+    if (realtimeError) {
+      console.error("Realtime error:", realtimeError);
+      toast({
+        title: "Connection issue",
+        description: "Failed to connect to realtime updates. Messages may not appear instantly.",
+        variant: "destructive",
+      });
+    }
+  }, [realtimeError]);
   
   // Close thread when switching channels
   useEffect(() => {
@@ -119,7 +147,23 @@ export default function Chat() {
     const unreadCutoff = unreadCutoffRef.current;
     return rawMessages
       .map((message): DisplayMessage => {
-        const timestamp = new Date(message.timestamp);
+        // Safe date parsing: handle both Date objects and ISO strings
+        let timestamp: Date;
+        try {
+          timestamp = message.createdAt instanceof Date 
+            ? message.createdAt 
+            : new Date(message.createdAt);
+          
+          // Validate the date
+          if (isNaN(timestamp.getTime())) {
+            console.warn('Invalid timestamp for message:', message.id, message.createdAt);
+            timestamp = new Date(); // Fallback to current time
+          }
+        } catch (error) {
+          console.error('Error parsing timestamp:', error);
+          timestamp = new Date();
+        }
+        
         const isOwn = message.userId === currentUserId;
         const isUnread = !isOwn && timestamp > unreadCutoff;
         return {
@@ -131,6 +175,7 @@ export default function Chat() {
           timestamp,
           isOwn,
           isUnread,
+          isPending: (message as any).isPending || false, // 送信中フラグを保持
           threadCount: 0,
         };
       })
@@ -161,19 +206,61 @@ export default function Chat() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
+      if (!currentWorkspaceId) {
+        throw new Error("Workspace ID is required");
+      }
+      if (!channelId) {
+        throw new Error("Channel ID is required");
+      }
+      
       return apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
+        channelId,
         content,
         userId: currentUserId,
         userName: currentUserName,
-        channelId: channelId ?? null,
-        channelType: isChannelContext ? "channel" : "dm"
       });
+    },
+    onMutate: async (content: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/messages"] });
+      
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData(["/api/messages"]);
+      
+      // Optimistically update to the new value
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        workspaceId: currentWorkspaceId,
+        channelId,
+        userId: currentUserId,
+        userName: currentUserName,
+        content,
+        createdAt: new Date(),
+        parentMessageId: null,
+        editedAt: null,
+        deletedAt: null,
+        isPending: true, // フラグで送信中を示す
+      };
+      
+      queryClient.setQueryData(["/api/messages"], (old: any) => {
+        if (!old) return [optimisticMessage];
+        return [...old, optimisticMessage];
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousMessages };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chatMessages"] });
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, _content, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(["/api/messages"], context.previousMessages);
+      }
+      
       const description = error instanceof Error ? error.message : 'Please try again.';
       toast({
         title: "Failed to send message",
@@ -184,6 +271,11 @@ export default function Chat() {
   });
   
   const handleFaqResponse = useCallback(async (faq: FaqEntry) => {
+    if (!currentWorkspaceId || !channelId) {
+      console.error("Missing workspace or channel ID");
+      return;
+    }
+    
     const responseContent = `FAQ Answer: ${faq.question}
 
 ${faq.answer}` +
@@ -192,11 +284,11 @@ ${faq.answer}` +
 Knowledge: ${KNOWLEDGE_ROUTE_BASE}/${faq.relatedKnowledgeId}` : "");
     try {
       await apiRequest("POST", "/api/messages", {
+        workspaceId: currentWorkspaceId,
+        channelId,
         content: responseContent,
         userId: "biz-assistant",
         userName: "Biz Assistant",
-        channelId: channelId ?? null,
-        channelType: isChannelContext ? "channel" : "dm",
       });
       toast({
         title: "Shared quick answer",
@@ -210,7 +302,7 @@ Knowledge: ${KNOWLEDGE_ROUTE_BASE}/${faq.relatedKnowledgeId}` : "");
         variant: "destructive",
       });
     }
-  }, [channelId, isChannelContext, toast]);
+  }, [currentWorkspaceId, channelId, toast]);
 
   const handleSendMessage = (content: string) => {
     const faqMatch = matchFaq(content);
@@ -438,9 +530,37 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
                       <h1 className="text-lg font-semibold" data-testid="chat-title">
                         {channelInfo.name}
                       </h1>
-                      <p className="text-sm text-muted-foreground">
-                        {channelInfo.memberCount} members • {channelInfo.description}
-                      </p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>{channelInfo.memberCount} members</span>
+                        {realtimeEnabled && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              {isRealtimeConnected ? (
+                                <>
+                                  <Wifi className="h-3 w-3 text-green-500" />
+                                  <span className="text-green-600 dark:text-green-400">Live</span>
+                                </>
+                              ) : (
+                                <>
+                                  <WifiOff className="h-3 w-3 text-yellow-500" />
+                                  <span className="text-yellow-600 dark:text-yellow-400">Offline</span>
+                                </>
+                              )}
+                            </span>
+                            {onlineUsers.length > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-green-600 dark:text-green-400">
+                                  {onlineUsers.length} online
+                                </span>
+                              </>
+                            )}
+                          </>
+                        )}
+                        <span>•</span>
+                        <span>{channelInfo.description}</span>
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -452,9 +572,19 @@ ${KNOWLEDGE_ROUTE_BASE}/${knowledgeId}`;
                       <h1 className="text-lg font-semibold" data-testid="chat-title">
                         {channelInfo.name}
                       </h1>
-                      <p className="text-sm text-muted-foreground">
-                        Direct message • {channelInfo.memberCount} participants
-                      </p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>Direct message</span>
+                        <span>•</span>
+                        <span>{channelInfo.memberCount} participants</span>
+                        {realtimeEnabled && onlineUsers.length > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="text-green-600 dark:text-green-400">
+                              {onlineUsers.length} online
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
